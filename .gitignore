@@ -1,2 +1,4 @@
+# Leonida Legend — GTA VI Trophy Atlas
+# Local build output and scratch files stay out of the repo.
 out/
 # build output from main.ts goes to out/ (see MAKEFUN_OUTPUT_DIR)
