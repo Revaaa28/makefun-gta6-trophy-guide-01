@@ -44,10 +44,15 @@ export function renderMissables(view, ctx) {
   const hp = document.createElement('p');
   hp.textContent = missable.guide;
   const hs = document.createElement('p');
-  hs.className = 'sources-line';
+  hs.className = 'sources-line hero-source';
   const hb = document.createElement('b');
-  hb.textContent = 'Sources: ';
-  hs.append(hb, document.createTextNode(missable.sources.join(' · ')));
+  hb.textContent = 'Source: ';
+  const outputLag = missable.sources.find((s) => s.startsWith('Output Lag')) ?? missable.sources[0];
+  const rest = missable.sources.filter((s) => s !== outputLag);
+  hs.append(hb, document.createTextNode(outputLag));
+  if (rest.length) {
+    hs.append(document.createTextNode(` · Trophy data: ${rest.join(' · ')}`));
+  }
   hero.append(hh, hp, hs);
   view.append(hero);
 

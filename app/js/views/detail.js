@@ -1,6 +1,7 @@
 // Leonida Legend — detail view: one trophy's full guide in the pane beside the checklist.
-// Shows the official name/description/grade, the atlas's own-words guide, any missable or caution
-// banner, its counter progress, its roadmap stage, its cited sources, and a personal note.
+// Shows the official name/description/grade, a prominent SOURCES block at the top of the pane
+// (so a citation is always visible beside the guide), any missable or caution banner, the
+// atlas's own-words guide, its counter progress, its roadmap stage, and a personal note.
 import { isEarned, setCounter, setNote, counterOf } from '../store.js';
 import { gradeLabel, stageOf, isMasked, displayName, displayDescription, formatCount } from '../data.js';
 
@@ -95,6 +96,33 @@ export function renderDetail(pane, trophy, ctx) {
   desc.textContent = displayDescription(state, trophy);
   pane.append(close, meta, h, desc);
 
+  // SOURCES block: first thing under the name/description, above the guide, so the citation
+  // is always in frame beside the advice it backs. One line per source, then an honesty
+  // status: unverified guidance is flagged as our own advice, everything else states it was
+  // written from the sources above in our own words.
+  const sourcesBox = document.createElement('div');
+  sourcesBox.className = 'sources-box';
+  const sourcesHeading = document.createElement('div');
+  sourcesHeading.className = 'sources-heading';
+  sourcesHeading.textContent = 'SOURCES';
+  sourcesBox.append(sourcesHeading);
+  for (const source of trophy.sources) {
+    const line = document.createElement('div');
+    line.className = 'sources-item';
+    line.textContent = source;
+    sourcesBox.append(line);
+  }
+  const sourcesStatus = document.createElement('div');
+  if (trophy.guide.includes('not yet pinned down')) {
+    sourcesStatus.className = 'sources-status sources-status-advice';
+    sourcesStatus.textContent = '⚠ Our own advice — not yet checked in the game';
+  } else {
+    sourcesStatus.className = 'sources-status';
+    sourcesStatus.textContent = 'Guide written from the sources above, in our own words';
+  }
+  sourcesBox.append(sourcesStatus);
+  pane.append(sourcesBox);
+
   if (trophy.missable) {
     const alert = document.createElement('div');
     alert.className = 'alert alert-missable';
@@ -142,11 +170,4 @@ export function renderDetail(pane, trophy, ctx) {
   note.value = state.notes[trophy.id] ?? '';
   note.addEventListener('input', () => setNote(state, trophy.id, note.value));
   pane.append(noteLabel, note);
-
-  const sources = document.createElement('p');
-  sources.className = 'sources-line';
-  const sb = document.createElement('b');
-  sb.textContent = 'Sources: ';
-  sources.append(sb, document.createTextNode(trophy.sources.join(' · ')));
-  pane.append(sources);
 }

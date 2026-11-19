@@ -88,11 +88,14 @@
   background: var(--panel);
   border: 1px solid var(--accent);
   border-radius: 12px;
-  padding: 18px;
+  padding: 14px 16px;
   position: sticky;
   top: 14px;
 }
-.detail-pane h2 { font-size: 1.55rem; line-height: 1.15; margin: 6px 0 4px; }
+.detail-pane h2 { font-size: 1.45rem; line-height: 1.15; margin: 4px 0 2px; }
+.detail-pane .detail-desc { margin-bottom: 8px; }
+.detail-pane .badge { font-size: 0.7rem; padding: 2px 6px; letter-spacing: 0.03em; }
+.detail-pane .grade-chip { font-size: 0.72rem; padding: 2px 6px; }
 .detail-desc { color: var(--muted); font-size: 1.02rem; margin: 0 0 10px; }
 .detail-guide { font-size: 1.04rem; }
 .detail-close { float: right; }
@@ -104,6 +107,24 @@
 .alert b { text-transform: uppercase; letter-spacing: 0.05em; }
 .sources-line { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; color: var(--muted); font-size: 0.92rem; }
 .sources-line b { color: var(--paper); }
+.sources-box {
+  border: 2px solid var(--accent);
+  background: var(--panel-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 10px 0 4px;
+}
+.sources-heading {
+  font-weight: 800; font-size: 1.05rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--accent-soft); margin-bottom: 4px;
+}
+.sources-item { font-size: 1.05rem; font-weight: 600; padding: 1px 0; }
+.sources-item::before { content: '• '; color: var(--accent); font-weight: 800; }
+.sources-status { margin-top: 7px; font-size: 0.99rem; color: var(--muted); font-style: italic; }
+.sources-status-advice {
+  color: #241a02; background: var(--warn); font-style: normal; font-weight: 800;
+  border-radius: 6px; padding: 7px 10px; text-transform: uppercase; letter-spacing: 0.04em;
+}
 .note-area {
   width: 100%; min-height: 64px; background: var(--panel-2); color: var(--paper);
   border: 1px solid var(--line); border-radius: 8px; padding: 9px; margin-top: 6px;
@@ -135,6 +156,7 @@
 }
 .missable-hero h3 { font-size: 1.4rem; margin-bottom: 6px; }
 .missable-hero p { margin: 4px 0; }
+.missable-hero .sources-line { border-top: 1px solid rgba(255, 255, 255, 0.35); color: var(--paper); font-size: 1.02rem; }
 .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }
 .card-grid-4 { grid-template-columns: repeat(4, 1fr); }
 .card-grid-4 .info-card { padding: 13px 14px; }
