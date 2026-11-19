@@ -1,3 +1,4 @@
+// checklist.js — the checklist view: the full trophy tracker with filters, counters and the guide pane.
 // Leonida Legend — checklist view: the tracker itself. All 55 trophies with official names,
 // descriptions and grades; checkboxes and counters saved as you go; kind/grade/status filters
 // and search; a trophy's guide opens in the detail pane beside the list.

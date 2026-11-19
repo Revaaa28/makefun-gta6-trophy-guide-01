@@ -1,3 +1,5 @@
+// main.ts — entry point for the make.fun hand-in: copies app/ and screenshots/ to the
+// output directory and writes dossier.json there via vendor/makefun-frontend.ts.
 // Leonida Legend — GTA VI Trophy Atlas: the gta6-trophy-guide-01 entry (Node 22, standard library only).
 // The guide is this directory's app/ folder: plain static files a browser opens at app/index.html (ES modules,
 // CSS, no build step), fully offline — it loads nothing over the network, and its trophy list and guides are

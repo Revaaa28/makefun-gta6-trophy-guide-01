@@ -1,3 +1,4 @@
+// roadmap.js — the roadmap view: the staged route to the Platinum with per-stage progress.
 // Leonida Legend — roadmap view: the road to the Platinum in 7 stages plus the stage-0
 // save-discipline brief. Each stage shows its trophies, its own earned progress from the same
 // saved state, its time note and its key warning. Built from the official descriptions and the

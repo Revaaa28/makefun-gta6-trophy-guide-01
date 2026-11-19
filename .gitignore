@@ -1,1 +1,2 @@
 out/
+# build output from main.ts goes to out/ (see MAKEFUN_OUTPUT_DIR)

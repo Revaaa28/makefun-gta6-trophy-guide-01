@@ -1,3 +1,4 @@
+// main.js — app entry and wiring: boots the atlas, owns hash routing and header stats, and renders the active view.
 // Leonida Legend — main: boot, header stats, hash routing, and the shared context every view
 // renders from. Routes: #/checklist (default), #/trophy/<id> (checklist with that guide open),
 // #/roadmap, #/missables, #/planner. Keyboard: "/" focuses the checklist search, Esc closes the

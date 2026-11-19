@@ -1,3 +1,4 @@
+// filters.js — filter state and matching: kind chips, grade/status selects and search text applied to the trophy list.
 // Leonida Legend — filters: the checklist's kind chips, grade and status selects, and search.
 // Pure functions over the trophy list plus the saved state; the checklist view owns the controls.
 import { isEarned } from './store.js';

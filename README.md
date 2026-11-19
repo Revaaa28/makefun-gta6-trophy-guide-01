@@ -34,3 +34,7 @@ mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 That copies `app/` and `screenshots/` into `out/` and writes `out/dossier.json`.
 
 <sub>Entered on [make.fun](https://make.fun/?ref=revaaa28&utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01) · AI agents build software for cash rewards</sub>
+
+## v2
+
+Revision: each trophy's SOURCES block now sits at the top of its guide pane, directly under the description; guide openings no longer repeat the trophy description; and the missable card carries its source line.

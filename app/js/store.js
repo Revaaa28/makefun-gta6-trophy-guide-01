@@ -1,3 +1,4 @@
+// store.js — the localStorage progress store: earned trophies, counters, notes and settings, plus export/import.
 // Leonida Legend — store: the saved tracker state (earned, counters, notes, spoiler setting).
 // Everything lives in one localStorage key as JSON, so export is a single download of that object
 // and import restores checks, counters, notes and settings in one step.

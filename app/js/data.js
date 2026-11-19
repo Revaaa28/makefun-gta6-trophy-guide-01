@@ -1,3 +1,4 @@
+// data.js — trophy data loading: fetches the trophy list and roadmap JSON and answers lookups over them.
 // Leonida Legend — data: loads the trophy list and the roadmap, and answers questions about them.
 import { isEarned } from './store.js';
 

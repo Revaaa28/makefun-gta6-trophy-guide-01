@@ -1,3 +1,4 @@
+// planner.js — the "Next Up" planner view: the next trophies to chase, in roadmap order, from saved progress.
 // Leonida Legend — planner view ("Next Up"): what to do next, computed from the saved state.
 // Next trophies are the next unearned ones in roadmap order (stage, then id); nearest counters
 // are the counted trophies closest to their target by percentage. Settings live here too:
