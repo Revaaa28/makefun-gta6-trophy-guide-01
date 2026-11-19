@@ -1,91 +1,122 @@
-// store.js — the localStorage progress store: earned trophies, counters, notes and settings, plus export/import.
-// Leonida Legend — store: the saved tracker state (earned, counters, notes, spoiler setting).
-// Everything lives in one localStorage key as JSON, so export is a single download of that object
-// and import restores checks, counters, notes and settings in one step.
-export const STORAGE_KEY = 'leonida-legend-v1';
+// store.js — progress persistence for Leonida Legend.
+//
+// Everything the player records lives in one localStorage entry:
+//   { earned: {id: true}, counters: {id: number}, notes: {id: string},
+//     hideSpoilers: boolean }
+// It is saved on every change, exported to a JSON file on demand, and can
+// be imported back on another browser or machine. Nothing leaves the device
+// unless the player exports it themselves.
 
-const blankState = () => ({ earned: {}, counters: {}, notes: {}, hideSpoilers: false });
+const STORAGE_KEY = 'leonida-legend-v1';
 
-export function loadState() {
+const blank = () => ({ earned: {}, counters: {}, notes: {}, hideSpoilers: false });
+
+let state = blank();
+const listeners = new Set();
+
+function persist() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return blankState();
-    const parsed = JSON.parse(raw);
-    return {
-      earned: parsed.earned ?? {},
-      counters: parsed.counters ?? {},
-      notes: parsed.notes ?? {},
-      hideSpoilers: Boolean(parsed.hideSpoilers),
-    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
-    return blankState();
+    // Storage full or blocked: the session keeps working in memory.
   }
 }
 
-export function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function emit() {
+  persist();
+  for (const fn of listeners) fn(state);
 }
 
-export function isEarned(state, id) {
+export function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      state = {
+        earned: parsed.earned ?? {},
+        counters: parsed.counters ?? {},
+        notes: parsed.notes ?? {},
+        hideSpoilers: Boolean(parsed.hideSpoilers),
+      };
+    }
+  } catch {
+    state = blank();
+  }
+  return state;
+}
+
+export function getState() {
+  return state;
+}
+
+export function subscribe(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+export function isEarned(id) {
   return Boolean(state.earned[id]);
 }
 
-export function toggleEarned(state, id) {
-  if (state.earned[id]) delete state.earned[id];
-  else state.earned[id] = true;
-  saveState(state);
+export function setEarned(id, on) {
+  if (on) state.earned[id] = true;
+  else delete state.earned[id];
+  emit();
 }
 
-export function counterOf(state, trophy) {
-  const value = Number(state.counters[trophy.id] ?? 0);
-  return Number.isFinite(value) ? Math.max(0, value) : 0;
+export function counterOf(id) {
+  return state.counters[id] ?? 0;
 }
 
-export function setCounter(state, trophy, value) {
-  const clean = Math.max(0, Math.floor(Number(value) || 0));
-  state.counters[trophy.id] = trophy.target ? Math.min(clean, trophy.target.count) : clean;
-  if (trophy.target && state.counters[trophy.id] >= trophy.target.count) state.earned[trophy.id] = true;
-  saveState(state);
-  return state.counters[trophy.id];
+export function setCounter(id, value) {
+  const v = Math.max(0, Math.floor(Number(value) || 0));
+  if (v === 0) delete state.counters[id];
+  else state.counters[id] = v;
+  emit();
 }
 
-export function setNote(state, id, text) {
+export function noteOf(id) {
+  return state.notes[id] ?? '';
+}
+
+export function setNote(id, text) {
   if (text) state.notes[id] = text;
   else delete state.notes[id];
-  saveState(state);
+  emit();
 }
 
-export function setHideSpoilers(state, on) {
+export function spoilersHidden() {
+  return state.hideSpoilers;
+}
+
+export function setSpoilersHidden(on) {
   state.hideSpoilers = Boolean(on);
-  saveState(state);
+  emit();
 }
 
-export function resetState(state) {
-  const fresh = blankState();
-  state.earned = fresh.earned;
-  state.counters = fresh.counters;
-  state.notes = fresh.notes;
-  state.hideSpoilers = fresh.hideSpoilers;
-  saveState(state);
-}
-
-export function exportState(state) {
+export function exportProgress() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   a.download = 'leonida-legend-progress.json';
+  document.body.appendChild(a);
   a.click();
+  a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-export async function importState(file) {
-  const parsed = JSON.parse(await file.text());
-  if (typeof parsed !== 'object' || parsed === null) throw new Error('not a progress file');
-  return {
-    earned: parsed.earned ?? {},
-    counters: parsed.counters ?? {},
-    notes: parsed.notes ?? {},
-    hideSpoilers: Boolean(parsed.hideSpoilers),
-  };
+export function importProgress(file) {
+  return file.text().then((text) => {
+    const parsed = JSON.parse(text);
+    if (typeof parsed !== 'object' || parsed === null) throw new Error('not a progress file');
+    state = {
+      earned: parsed.earned ?? {},
+      counters: parsed.counters ?? {},
+      notes: parsed.notes ?? {},
+      hideSpoilers: Boolean(parsed.hideSpoilers),
+    };
+    emit();
+    return state;
+  });
 }

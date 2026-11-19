@@ -1,51 +1,88 @@
-// data.js — trophy data loading: fetches the trophy list and roadmap JSON and answers lookups over them.
-// Leonida Legend — data: loads the trophy list and the roadmap, and answers questions about them.
-import { isEarned } from './store.js';
+// data.js — loads the trophy list and the roadmap, and answers the small
+// questions every view asks: what is this trophy, what stage is it in,
+// is it masked by the spoiler setting, how do its numbers read.
+
+let trophies = [];
+let byId = new Map();
+let roadmap = { title: '', stages: [] };
+let stageById = new Map();
 
 export async function loadData() {
-  const [trophyDoc, roadmapDoc] = await Promise.all([
-    fetch('data/trophies.json').then((r) => r.json()),
-    fetch('data/roadmap.json').then((r) => r.json()),
+  const [tRes, rRes] = await Promise.all([
+    fetch('data/trophies.json'),
+    fetch('data/roadmap.json'),
   ]);
-  const trophies = trophyDoc.trophies;
-  const byId = new Map(trophies.map((t) => [t.id, t]));
-  return { trophyDoc, trophies, byId, stages: roadmapDoc.stages };
+  if (!tRes.ok) throw new Error(`trophies.json: HTTP ${tRes.status}`);
+  if (!rRes.ok) throw new Error(`roadmap.json: HTTP ${rRes.status}`);
+  const tJson = await tRes.json();
+  roadmap = await rRes.json();
+  trophies = tJson.trophies ?? [];
+  byId = new Map(trophies.map((t) => [t.id, t]));
+  stageById = new Map();
+  for (const stage of roadmap.stages) {
+    for (const id of stage.trophyIds) stageById.set(id, stage);
+  }
+  return { trophies, roadmap };
 }
 
-export function gradeLabel(grade) {
-  return grade.charAt(0).toUpperCase() + grade.slice(1);
+export function allTrophies() {
+  return trophies;
 }
 
-export function stageOf(data, trophy) {
-  return data.stages.find((s) => s.id === trophy.stage) ?? null;
+export function trophy(id) {
+  return byId.get(id);
 }
 
-// The spoiler rule: with Hide spoilers on, an unearned story trophy shows neither its name nor
-// its description (nor its guide) until it is earned.
-export function isMasked(state, trophy) {
-  return state.hideSpoilers && trophy.kind === 'story' && !isEarned(state, trophy.id);
+export function stages() {
+  return roadmap.stages;
 }
 
-export function displayName(state, trophy) {
-  return isMasked(state, trophy) ? 'Hidden trophy' : trophy.name;
+export function stageOf(t) {
+  return stageById.get(t.id) ?? roadmap.stages[t.stage] ?? null;
 }
 
-export function displayDescription(state, trophy) {
-  return isMasked(state, trophy)
-    ? 'A story trophy. Its name and description stay hidden until you earn it — or turn off Hide spoilers.'
-    : trophy.description;
+export function stageName(t) {
+  const s = stageOf(t);
+  return s ? `Stage ${s.id}` : '';
 }
 
-export function countedTrophies(data) {
-  return data.trophies.filter((t) => t.target);
+// A trophy is spoiler-masked when the player asked to hide spoilers, it is
+// a story trophy, and it has not been earned yet.
+export function isMasked(t, state) {
+  return Boolean(state.hideSpoilers && t.kind === 'story' && !state.earned[t.id]);
 }
 
-export function counterPercent(state, trophy, counterOf) {
-  if (!trophy.target) return 0;
-  return Math.min(100, Math.round((counterOf(state, trophy) / trophy.target.count) * 100));
+export function displayName(t, state) {
+  return isMasked(t, state) ? 'Hidden trophy' : t.name;
 }
 
-export function formatCount(value, unit) {
-  const num = value.toLocaleString('en-US');
-  return unit && unit.startsWith('dollars') ? `$${num}` : num;
+export function displayDescription(t, state) {
+  return isMasked(t, state)
+    ? 'A story trophy, hidden until you earn it.'
+    : t.description;
+}
+
+const GRADE_LABEL = {
+  platinum: 'Platinum',
+  gold: 'Gold',
+  silver: 'Silver',
+  bronze: 'Bronze',
+};
+
+export function gradeLabel(t) {
+  return GRADE_LABEL[t.grade] ?? t.grade;
+}
+
+export function kindLabel(t) {
+  return t.kind.charAt(0).toUpperCase() + t.kind.slice(1);
+}
+
+export function formatCount(t, n) {
+  if (t.target && t.target.unit === '$') return '$' + n.toLocaleString('en-US');
+  return String(n);
+}
+
+export function formatTarget(t) {
+  if (!t.target) return '';
+  return `${formatCount(t, t.target.target)} ${t.target.unit === '$' ? '' : t.target.unit}`.trim();
 }

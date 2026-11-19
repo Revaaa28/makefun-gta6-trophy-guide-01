@@ -1,124 +1,79 @@
-// planner.js — the "Next Up" planner view: the next trophies to chase, in roadmap order, from saved progress.
-// Leonida Legend — planner view ("Next Up"): what to do next, computed from the saved state.
-// Next trophies are the next unearned ones in roadmap order (stage, then id); nearest counters
-// are the counted trophies closest to their target by percentage. Settings live here too:
-// export, import, the spoiler toggle state, and a full reset behind a confirm.
-import { isEarned, counterOf, resetState, exportState } from '../store.js';
-import { displayName, displayDescription, countedTrophies, counterPercent, formatCount } from '../data.js';
+// planner.js — "Next Up": given where the player actually is, what is the
+// most useful next trophy? Answers in roadmap order: the missable first if
+// it is still unearned, then the next story beat, then the counters that
+// are closest to done. Spoiler masking applies here too.
 
-export function renderPlanner(view, ctx) {
-  const { data, state } = ctx;
-  view.replaceChildren();
-  const title = document.createElement('h2');
-  title.className = 'view-title';
-  title.textContent = 'Next Up Planner';
-  const lede = document.createElement('p');
-  lede.className = 'view-lede';
-  lede.textContent = 'Your next five trophies in roadmap order, the counters closest to done, and your save-file controls. Everything here reads the same saved progress as the checklist.';
-  view.append(title, lede);
+import { allTrophies, stages, trophy, displayName, gradeLabel, formatCount } from '../data.js';
+import { isEarned, counterOf } from '../store.js';
+import { esc } from './checklist.js';
 
-  const ordered = [...data.trophies].sort((a, b) => a.stage - b.stage || a.id - b.id);
-  const next = ordered.filter((t) => !isEarned(state, t.id)).slice(0, 5);
-  const nextTitle = document.createElement('h3');
-  nextTitle.textContent = 'Next up — in roadmap order';
-  view.append(nextTitle);
-  if (next.length === 0) {
-    const done = document.createElement('div');
-    done.className = 'empty-state';
-    done.textContent = 'All 55 earned. Vice City salutes you, Leonida Legend.';
-    view.append(done);
-  }
-  next.forEach((trophy, i) => {
-    const item = document.createElement('div');
-    item.className = 'nextup-item';
-    const rank = document.createElement('div');
-    rank.className = 'nextup-rank';
-    rank.textContent = String(i + 1);
-    const body = document.createElement('div');
-    const name = document.createElement('div');
-    name.className = 'row-name';
-    name.textContent = `${displayName(state, trophy)} — Stage ${trophy.stage}`;
-    const first = document.createElement('div');
-    first.className = 'first-line';
-    const masked = state.hideSpoilers && trophy.kind === 'story';
-    first.textContent = masked
-      ? 'Hidden by the spoiler setting — earn it to reveal its guide.'
-      : trophy.guide.split('. ')[0] + '.';
-    const desc = document.createElement('div');
-    desc.className = 'row-desc';
-    desc.textContent = displayDescription(state, trophy);
-    body.append(name, desc, first);
-    item.append(rank, body);
-    item.addEventListener('click', () => ctx.goToTrophy(trophy.id));
-    view.append(item);
-  });
+function item(t, why, state) {
+  return `<button type="button" class="next-item" data-open="${t.id}">
+    <span class="next-why">${esc(why)}</span>
+    <span class="next-name">${esc(displayName(t, state))}</span>
+    <span class="chip grade-${t.grade}">${gradeLabel(t)}</span>
+  </button>`;
+}
 
-  const nearTitle = document.createElement('h3');
-  nearTitle.style.marginTop = '20px';
-  nearTitle.textContent = 'Counters nearest completion';
-  view.append(nearTitle);
-  const near = countedTrophies(data)
-    .filter((t) => !isEarned(state, t.id) && counterOf(state, t) > 0)
-    .sort((a, b) => counterPercent(state, b, counterOf) - counterPercent(state, a, counterOf))
-    .slice(0, 5);
-  if (near.length === 0) {
-    const none = document.createElement('p');
-    none.className = 'view-lede';
-    none.textContent = 'No counters started yet — bump one in the checklist and it will show up here.';
-    view.append(none);
-  }
-  for (const trophy of near) {
-    const item = document.createElement('div');
-    item.className = 'nextup-item';
-    const rank = document.createElement('div');
-    rank.className = 'nextup-rank';
-    rank.textContent = `${counterPercent(state, trophy, counterOf)}%`;
-    const body = document.createElement('div');
-    const name = document.createElement('div');
-    name.className = 'row-name';
-    name.textContent = trophy.name;
-    const detailLine = document.createElement('div');
-    detailLine.className = 'first-line';
-    detailLine.textContent = `${formatCount(counterOf(state, trophy), trophy.target.unit)} of ${formatCount(trophy.target.count, trophy.target.unit)} ${trophy.target.unit}`;
-    body.append(name, detailLine);
-    item.append(rank, body);
-    item.addEventListener('click', () => ctx.goToTrophy(trophy.id));
-    view.append(item);
-  }
-
-  const settings = document.createElement('section');
-  settings.className = 'settings-box';
-  const sh = document.createElement('h3');
-  sh.textContent = 'Save file — export, import, reset';
-  const sp = document.createElement('p');
-  sp.textContent = `Progress is stored in this browser only. Spoiler setting: Hide spoilers is currently ${state.hideSpoilers ? 'ON — unearned story trophies are masked' : 'OFF — everything is visible'} (toggle it in the header). Export before you clear browser data; import restores checks, counters, notes and settings.`;
-  const row = document.createElement('div');
-  row.className = 'settings-row';
-  const exportBtn = document.createElement('button');
-  exportBtn.type = 'button';
-  exportBtn.className = 'btn btn-accent';
-  exportBtn.textContent = 'Export progress (.json)';
-  exportBtn.addEventListener('click', () => exportState(state));
-  const importLabel = document.createElement('label');
-  importLabel.className = 'btn';
-  importLabel.textContent = 'Import progress…';
-  const importInput = document.createElement('input');
-  importInput.type = 'file';
-  importInput.accept = 'application/json';
-  importInput.hidden = true;
-  importInput.addEventListener('change', () => ctx.importFromFile(importInput.files[0]));
-  importLabel.append(importInput);
-  const resetBtn = document.createElement('button');
-  resetBtn.type = 'button';
-  resetBtn.className = 'btn btn-danger';
-  resetBtn.textContent = 'Reset everything';
-  resetBtn.addEventListener('click', () => {
-    if (window.confirm('Reset all Leonida Legend progress, counters, notes and settings? This cannot be undone.')) {
-      resetState(state);
-      ctx.refresh();
+export function renderPlanner(root, ctx) {
+  const { state } = ctx;
+  const picks = [];
+  const used = new Set();
+  const add = (t, why) => {
+    if (t && !isEarned(t.id) && !used.has(t.id)) {
+      picks.push(item(t, why, state));
+      used.add(t.id);
     }
-  });
-  row.append(exportBtn, importLabel, resetBtn);
-  settings.append(sh, sp, row);
-  view.append(settings);
+  };
+
+  // 1. The missable outranks everything while it is unearned.
+  add(trophy(28), 'Missable — do it in Chapter 1, before anything else');
+
+  // 2. Next story trophy in roadmap order.
+  outer: for (const stage of stages()) {
+    for (const id of stage.trophyIds) {
+      const t = trophy(id);
+      if (t && t.kind === 'story' && !isEarned(t.id)) {
+        add(t, `Next story beat — Stage ${stage.id}: ${stage.name}`);
+        break outer;
+      }
+    }
+  }
+
+  // 3. Counters nearest completion (by percentage), up to three.
+  const counters = allTrophies()
+    .filter((t) => t.target && !isEarned(t.id))
+    .map((t) => ({ t, pct: counterOf(t.id) / t.target.target }))
+    .filter((c) => c.pct > 0)
+    .sort((a, b) => b.pct - a.pct)
+    .slice(0, 3);
+  for (const { t, pct } of counters) {
+    add(
+      t,
+      `Counter at ${Math.round(pct * 100)}% — ${formatCount(t, counterOf(t.id))} of ${formatCount(t, t.target.target)} ${t.target.unit === '$' ? '' : t.target.unit}`.trim(),
+    );
+  }
+
+  // 4. If nothing has been started, point at the roadmap's first steps.
+  if (picks.length === 0) {
+    add(trophy(2), 'Start here — the opening mission');
+    add(trophy(35), 'Start the vehicle counter from hour one');
+    add(trophy(42), 'Explore as you go — areas register automatically');
+  }
+
+  const earnedCount = allTrophies().filter((t) => isEarned(t.id)).length;
+  root.innerHTML = `
+    <div class="view-intro">
+      <h2>Next Up</h2>
+      <p>Your planner, in roadmap order — the missable first, the next story beat,
+      then whichever counters you are closest to finishing.
+      ${earnedCount} of ${allTrophies().length} trophies earned so far.</p>
+    </div>
+    <div class="next-list">${picks.join('')}</div>
+    <p class="next-note">Finished everything here? Open the Roadmap and work the
+    earliest stage that still has unearned trophies.</p>`;
+
+  root.querySelectorAll('[data-open]').forEach((b) =>
+    b.addEventListener('click', () => ctx.onOpen(Number(b.dataset.open))),
+  );
 }

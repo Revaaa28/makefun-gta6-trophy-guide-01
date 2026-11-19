@@ -1,104 +1,62 @@
-// Leonida Legend — missables view: the honest short list. One trophy can truly be missed
-// (Positive Mental Attitude's Chapter 1 balcony meditation), one event is time-sensitive
-// (Race Against Yago, inside Strangers & Freaks), and the rest of the risk is save discipline:
-// no mission replay, chapter saves, no cheats. Every claim names its source. A live snapshot of
-// every counter closes the page.
-import { counterOf } from '../store.js';
-import { countedTrophies, formatCount } from '../data.js';
+// missables.js — the danger page. GTA VI's list is kind in one specific
+// way: exactly one thing can be lost forever (Lucia's Chapter 1 balcony
+// meditation, inside Positive Mental Attitude), and it gets a red hero
+// card with its source printed on it. Everything below it is a caution,
+// not a lockout.
 
-function card(titleText, bodyText, sourceText) {
-  const el = document.createElement('article');
-  el.className = 'info-card';
-  const h = document.createElement('h3');
-  h.textContent = titleText;
-  const p = document.createElement('p');
-  p.textContent = bodyText;
-  el.append(h, p);
-  if (sourceText) {
-    const s = document.createElement('p');
-    s.className = 'sources-line';
-    const b = document.createElement('b');
-    b.textContent = 'Source: ';
-    s.append(b, document.createTextNode(sourceText));
-    el.append(s);
-  }
-  return el;
-}
+import { trophy, displayName } from '../data.js';
+import { isEarned, counterOf } from '../store.js';
+import { esc } from './checklist.js';
 
-export function renderMissables(view, ctx) {
-  const { data, state } = ctx;
-  view.replaceChildren();
-  const title = document.createElement('h2');
-  title.className = 'view-title';
-  title.textContent = 'Missables & Traps';
-  const lede = document.createElement('p');
-  lede.className = 'view-lede';
-  lede.textContent = 'Almost nothing in Leonida can be missed for good — but the few things that can are exactly the ones a platinum run dies on. Here they are, each with its source.';
-  view.append(title, lede);
+export function renderMissables(root, ctx) {
+  const { state } = ctx;
+  const pma = trophy(28);
+  const earned = isEarned(28);
+  const spots = counterOf(28);
 
-  const missable = data.byId.get(28);
-  const hero = document.createElement('section');
-  hero.className = 'missable-hero';
-  const hh = document.createElement('h3');
-  hh.textContent = '⚠ THE ONE TRUE MISSABLE — Positive Mental Attitude (Chapter 1)';
-  const hp = document.createElement('p');
-  hp.textContent = missable.guide;
-  const hs = document.createElement('p');
-  hs.className = 'sources-line hero-source';
-  const hb = document.createElement('b');
-  hb.textContent = 'Source: ';
-  const outputLag = missable.sources.find((s) => s.startsWith('Output Lag')) ?? missable.sources[0];
-  const rest = missable.sources.filter((s) => s !== outputLag);
-  hs.append(hb, document.createTextNode(outputLag));
-  if (rest.length) {
-    hs.append(document.createTextNode(` · Trophy data: ${rest.join(' · ')}`));
-  }
-  hero.append(hh, hp, hs);
-  view.append(hero);
+  root.innerHTML = `
+    <div class="view-intro">
+      <h2>Missables &amp; one-time warnings</h2>
+      <p>Almost everything in Leonida waits for you — strand finales stay open after the
+      credits, and story missions retry from checkpoints. One thing does not wait:</p>
+    </div>
 
-  const grid = document.createElement('div');
-  grid.className = 'card-grid card-grid-4';
-  const strangers = data.byId.get(25);
-  grid.append(
-    card('⏳ TIME-SENSITIVE — Race Against Yago (Strangers & Freaks)', strangers.caution, strangers.sources.join(' · ')),
-    card('💾 NO MISSION REPLAY — keep chapter saves', 'There is no mission replay and no New Game Plus. The game offers 15 manual save slots plus one autosave: keep one save at the start of every chapter, one untouched save from just before the final mission, and a Chapter 1 save until Positive Mental Attitude pops.', 'Output Lag — GTA 6 Trophy List guide (Nov 19, 2026)'),
-    card('🚫 NO CHEATS on a trophy save', 'Cheats switch off both trophies and saving. Keep one clean save file for the platinum run and never enter a cheat on it.', 'Output Lag — GTA 6 Trophy List guide (Nov 19, 2026)'),
-    card('✓ EVERYTHING ELSE WAITS', 'Side-story finales, collectibles, counters and the 100% checklist all stay available after the credits, and work done earlier still counts. If it is not on this page, it cannot be missed.', 'Output Lag — GTA 6 Trophy List guide (Nov 19, 2026)'),
-  );
-  view.append(grid);
+    <section class="missable-hero">
+      <p class="hero-flag">⚠ THE ONE TRUE MISSABLE</p>
+      <h3>${esc(displayName(pma, state))} — Chapter 1</h3>
+      <p>Lucia's balcony meditation spot counts toward this trophy's 18 meditation spots,
+      and it is only there during Chapter 1. Finish Chapter 1 without it and no save, replay
+      or New Game+ (there is none) can bring it back — the Platinum would need a fresh run.</p>
+      <p><strong>Do it before Chapter 1 ends.</strong> The other 17 spots stay available all game.</p>
+      <p class="hero-status">${earned ? '✓ Earned — crisis averted.' : `Your tracker: ${spots} / 18 spots meditated.`}</p>
+      <p class="hero-source">Source: Output Lag — GTA 6 Trophy List guide (Nov 19, 2026)</p>
+      <button type="button" class="hero-btn" data-open="28">Open the full guide</button>
+    </section>
 
-  const countersCard = document.createElement('section');
-  countersCard.className = 'info-card';
-  countersCard.style.marginTop = '16px';
-  const ch = document.createElement('h3');
-  ch.textContent = 'Your counters at a glance';
-  countersCard.append(ch);
-  const table = document.createElement('table');
-  table.className = 'counter-table';
-  const head = document.createElement('tr');
-  for (const label of ['Trophy', 'Your count', 'Target', 'Done']) {
-    const th = document.createElement('th');
-    th.textContent = label;
-    if (label !== 'Trophy') th.className = 'num';
-    head.append(th);
-  }
-  table.append(head);
-  for (const trophy of countedTrophies(data)) {
-    const tr = document.createElement('tr');
-    const name = document.createElement('td');
-    name.textContent = trophy.name;
-    const mine = document.createElement('td');
-    mine.className = 'num';
-    mine.textContent = formatCount(counterOf(state, trophy), trophy.target.unit);
-    const target = document.createElement('td');
-    target.className = 'num';
-    target.textContent = `${formatCount(trophy.target.count, trophy.target.unit)} ${trophy.target.unit}`;
-    const pct = document.createElement('td');
-    pct.className = 'num';
-    pct.textContent = `${Math.min(100, Math.round((counterOf(state, trophy) / trophy.target.count) * 100))}%`;
-    tr.append(name, mine, target, pct);
-    table.append(tr);
-  }
-  countersCard.append(table);
-  view.append(countersCard);
+    <section class="caution-list">
+      <h3>Lesser cautions — annoying, not fatal</h3>
+      <article class="caution">
+        <h4>Race Against Yago is time-sensitive</h4>
+        <p>The Chapter 3 stranger strand behind Strangers &amp; Freaks does not wait around.
+        The moment it appears on the map, drop everything and run it.</p>
+      </article>
+      <article class="caution">
+        <h4>No mission replay, no New Game+</h4>
+        <p>There is no way to redo a finished mission. Keep a manual save at the start of
+        every chapter and one before the final mission — 15 manual slots plus autosave
+        make it painless, and those saves are your only way back.</p>
+      </article>
+      <article class="caution">
+        <h4>Cheats disable trophies and saving</h4>
+        <p>Entering a cheat turns off trophy earning and saving for the session. Play the
+        Platinum run clean; keep the chaos for a throwaway save.</p>
+      </article>
+      <article class="caution">
+        <h4>Partner trophies need both of them</h4>
+        <p>Hot Together and Retail Therapy only count with Jason and Lucia together,
+        which the story allows from Chapter 2. Attempting them solo earns nothing.</p>
+      </article>
+    </section>`;
+
+  root.querySelector('[data-open]').addEventListener('click', () => ctx.onOpen(28));
 }

@@ -1,7 +1,7 @@
-// filters.js — filter state and matching: kind chips, grade/status selects and search text applied to the trophy list.
-// Leonida Legend — filters: the checklist's kind chips, grade and status selects, and search.
-// Pure functions over the trophy list plus the saved state; the checklist view owns the controls.
-import { isEarned } from './store.js';
+// filters.js — the checklist's filter state and the matching rule.
+// Kinds are the guide's own taxonomy (story / missable / collectibles /
+// activities) plus an "online" bucket that intentionally matches nothing:
+// GTA VI has no online trophies at launch, and the view says so honestly.
 
 export const KIND_FILTERS = [
   { id: 'all', label: 'All kinds' },
@@ -12,24 +12,41 @@ export const KIND_FILTERS = [
   { id: 'online', label: 'Online' },
 ];
 
-export function matchesKind(trophy, kind) {
-  if (kind === 'all') return true;
-  if (kind === 'missable') return Boolean(trophy.missable || trophy.caution);
-  if (kind === 'online') return trophy.kind === 'online';
-  return trophy.kind === kind;
+export const GRADE_FILTERS = [
+  { id: 'all', label: 'All grades' },
+  { id: 'platinum', label: 'Platinum' },
+  { id: 'gold', label: 'Gold' },
+  { id: 'silver', label: 'Silver' },
+  { id: 'bronze', label: 'Bronze' },
+];
+
+export const STATUS_FILTERS = [
+  { id: 'all', label: 'Earned + remaining' },
+  { id: 'earned', label: 'Earned only' },
+  { id: 'remaining', label: 'Remaining only' },
+];
+
+export function blankFilters() {
+  return { query: '', kind: 'all', grade: 'all', status: 'all' };
 }
 
-export function applyFilters(trophies, state, filters) {
-  const query = (filters.query ?? '').trim().toLowerCase();
-  return trophies.filter((trophy) => {
-    if (!matchesKind(trophy, filters.kind)) return false;
-    if (filters.grade !== 'all' && trophy.grade !== filters.grade) return false;
-    if (filters.status === 'earned' && !isEarned(state, trophy.id)) return false;
-    if (filters.status === 'remaining' && isEarned(state, trophy.id)) return false;
-    if (query) {
-      const haystack = `${trophy.name} ${trophy.description} ${trophy.guide}`.toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
-    return true;
-  });
+export function matchesKind(t, kind) {
+  if (kind === 'all') return true;
+  if (kind === 'missable') return t.missable === true;
+  if (kind === 'online') return false; // no online trophies at launch
+  return t.kind === kind;
+}
+
+export function matchesFilters(t, f, state) {
+  if (!matchesKind(t, f.kind)) return false;
+  if (f.grade !== 'all' && t.grade !== f.grade) return false;
+  const earned = Boolean(state.earned[t.id]);
+  if (f.status === 'earned' && !earned) return false;
+  if (f.status === 'remaining' && earned) return false;
+  if (f.query) {
+    const q = f.query.toLowerCase();
+    const hay = `${t.name} ${t.description} ${t.guide}`.toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
 }

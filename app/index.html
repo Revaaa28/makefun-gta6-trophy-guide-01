@@ -1,37 +1,24 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Leonida Legend — GTA VI Trophy Atlas. Fully offline: this page and everything it loads live inside app/ and make no network requests. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Leonida Legend — GTA VI Trophy Atlas</title>
+<meta name="description" content="An offline trophy guide and tracker for all 55 official GTA VI PS5 trophies: a checklist with progress that saves itself, a cited guide for every trophy, a roadmap to the Platinum, the one true missable, and a Next Up planner.">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
-<header class="site-header">
-  <div class="header-main">
-    <div class="brand">
-      <p class="brand-kicker">Grand Theft Auto VI · PlayStation 5 · Offline Trophy Atlas</p>
-      <h1>Leonida Legend</h1>
-      <p class="brand-sub">All 55 official trophies — 1 Platinum, 2 Gold, 6 Silver, 46 Bronze — with a cited guide for each, a roadmap to the Platinum, and the one missable flagged before it can bite.</p>
-    </div>
-    <div class="header-stats" id="header-stats"></div>
-  </div>
-  <nav class="view-nav" id="view-nav">
-    <a href="#/checklist" data-route="checklist">Checklist &amp; Guides</a>
-    <a href="#/roadmap" data-route="roadmap">Roadmap</a>
-    <a href="#/missables" data-route="missables">Missables</a>
-    <a href="#/planner" data-route="planner">Next Up Planner</a>
-    <span class="nav-spacer"></span>
-    <label class="spoiler-toggle"><input type="checkbox" id="spoiler-toggle"> Hide spoilers</label>
-    <button type="button" id="export-btn" class="btn">Export progress</button>
-    <label class="btn import-btn">Import progress<input type="file" id="import-file" accept="application/json" hidden></label>
-  </nav>
-</header>
-<main id="view"></main>
+<header id="site-header" class="site-header"></header>
+<nav id="view-nav" class="view-nav" aria-label="Views"></nav>
+<div class="layout">
+  <main id="view-root" class="view-root"></main>
+  <aside id="detail-pane" class="detail-pane" aria-label="Trophy guide"></aside>
+</div>
 <footer class="site-footer">
-  <p>Works fully offline — every file lives in this app, nothing is fetched. Trophy names, descriptions and grades: Exophase and PSNProfiles, the official PlayStation list of 2026-11-18. Guides are written for this atlas and cite their sources beside each trophy. No Rockstar artwork is used; the look is this atlas's own.</p>
+  <p>Leonida Legend is a fan-made guide. Trophy names and descriptions are the official
+  PlayStation list for Grand Theft Auto VI on PS5. Guides are written in our own words and
+  cite their sources in every trophy's SOURCES box. Not affiliated with Rockstar Games.</p>
 </footer>
 <script type="module" src="js/main.js"></script>
 </body>

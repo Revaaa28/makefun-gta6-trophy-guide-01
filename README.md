@@ -1,40 +1,59 @@
 # Leonida Legend — GTA VI Trophy Atlas
 
-[![make.fun · gta6-trophy-guide-01](https://make.fun/badge/gta6-trophy-guide-01.svg)](https://make.fun/bounty/gta6-trophy-guide-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
-[![rank](https://make.fun/badge/gta6-trophy-guide-01/Revaaa28/makefun-gta6-trophy-guide-01/rank.svg)](https://make.fun/bounty/gta6-trophy-guide-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
-[![reward](https://make.fun/badge/gta6-trophy-guide-01/Revaaa28/makefun-gta6-trophy-guide-01/reward.svg)](https://make.fun/bounty/gta6-trophy-guide-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
+[![make.fun bounty](https://make.fun/badge/gta6-trophy-guide-01.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
+[![rank](https://make.fun/badge/gta6-trophy-guide-01/Revaaa28/makefun-gta6-trophy-guide-01/rank.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
+[![reward](https://make.fun/badge/gta6-trophy-guide-01/Revaaa28/makefun-gta6-trophy-guide-01/reward.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
 
-An offline guide and tracker for all 55 PlayStation 5 trophies of Grand Theft Auto VI — 1 Platinum, 2 Gold, 6 Silver, 46 Bronze, 28 of them hidden on PSN. Every trophy carries its official name, description and grade, plus a guide written for this atlas in its own words that cites its sources beside the trophy: what to do, where and how, and when it can be missed.
+An offline trophy guide and tracker for **all 55 official Grand Theft Auto VI
+trophies on PlayStation 5** — 1 Platinum, 2 Gold, 6 Silver, 46 Bronze, 28 of
+them hidden. Built for the make.fun bounty
+[gta6-trophy-guide-01](https://make.fun/bounty/gta6-trophy-guide-01).
 
-What is inside:
+## What it does
 
-- **Checklist & tracker** — tick trophies off, bump per-trophy counters toward their official targets (250 stunts, 42 Shooting Range gold medals, 100 WAiNK locations, $250,000 laundered, and 15 more), and add a personal note per trophy. Everything saves in the browser (localStorage) and can be exported to a JSON file and imported back.
-- **Filters & search** — by kind (story, missable, collectibles, activities, online), by grade, by earned/remaining, plus full-text search. The online filter says it plainly: there are no online trophies at launch.
-- **Spoiler setting** — "Hide spoilers" masks the names, descriptions and guides of unearned story trophies until they are earned.
-- **Roadmap to the Platinum** — seven stages from the Chapter 1 opening to the 100% grind, each with its trophies, its own progress, and its key warning, built from the official descriptions.
-- **Missables page** — the one true missable (the Chapter 1 balcony meditation behind Positive Mental Attitude), the time-sensitive Race Against Yago, and the save discipline that protects the run: no mission replay, a save at the start of every chapter, no cheats on a trophy save.
-- **Next Up planner** — the next five trophies in roadmap order and the counters nearest completion, computed from your saved progress.
-
-The app is plain static files under `app/` with no build step and no libraries: it works with the network off, loads nothing from outside its own files, and uses no Rockstar artwork — the night-ledger look is its own. Trophy names, descriptions and grades follow the official list as published by Exophase and PSNProfiles (2026-11-18); gameplay specifics cite the Output Lag trophy guide of Nov 19, 2026 and Leonida Hub's confirmed list of Nov 19, 2026.
+- **Checklist & tracker** — every trophy with its official name, description
+  and grade. Tick trophies off, track counters toward their targets (250
+  stunts, 100 vehicles, $250,000 laundered…), and keep a private note per
+  trophy. Progress saves itself in the browser; export it to a file and
+  import it anywhere.
+- **A cited guide for every trophy** — written in our own words, and every
+  guide pane opens with a **SOURCES** box naming where its facts come from
+  (Exophase, PSNProfiles, Output Lag), plus an honest status line where a
+  guide is partly our own advice the game has not confirmed yet.
+- **Filters & search** — by kind (story, missable, collectibles, activities,
+  online), grade and earned status. The online filter answers honestly:
+  there are no online trophies at launch.
+- **Spoiler setting** — "Hide spoilers" masks unearned story trophies
+  everywhere, planner included, until you earn them.
+- **Roadmap to the Platinum** — eight stages in play order, from save
+  discipline (there is no mission replay and no New Game+) to the 100%
+  grind, each with live per-stage progress.
+- **Missables page** — GTA VI has exactly one true missable: Lucia's
+  Chapter 1 balcony meditation inside *Positive Mental Attitude*. It gets a
+  red card of its own, with its source printed on it.
+- **Next Up planner** — the missable first, then your next story beat, then
+  whichever counters you are closest to finishing.
 
 ## Run it
 
-```sh
-node serve.ts
-```
-
-Then open http://localhost:8080 — the atlas serves from `app/`.
-
-To hand the entry in the way the grader does:
+The guide is plain static files — no build step, no network requests, every
+file it loads lives in `app/`.
 
 ```sh
-mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+node serve.ts            # preview at http://localhost:8080
+node main.ts             # hand-in: copies app/ + screenshots/ to /output
+                         # and writes dossier.json (see MAKEFUN_OUTPUT_DIR)
 ```
 
-That copies `app/` and `screenshots/` into `out/` and writes `out/dossier.json`.
+Requires Node 22+. Trophy names and descriptions are the official
+PlayStation list; Leonida Legend is a fan-made guide and is not affiliated
+with Rockstar Games.
 
-<sub>Entered on [make.fun](https://make.fun/?ref=revaaa28&utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01) · AI agents build software for cash rewards</sub>
+## Screenshots
 
-## v2
-
-Revision: each trophy's SOURCES block now sits at the top of its guide pane, directly under the description; guide openings no longer repeat the trophy description; and the missable card carries its source line.
+1. `screenshots/1-cover.jpg` — the checklist with Sneakthief's guide open and
+   its SOURCES box at the top of the pane.
+2. `screenshots/2-roadmap.jpg` — the eight-stage roadmap to the Platinum.
+3. `screenshots/3-missables.jpg` — the one true missable, flagged in red with
+   its source line.
+4. `screenshots/4-planner.jpg` — the Next Up planner with spoilers hidden.

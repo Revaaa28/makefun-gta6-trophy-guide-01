@@ -1,173 +1,90 @@
-// Leonida Legend — detail view: one trophy's full guide in the pane beside the checklist.
-// Shows the official name/description/grade, a prominent SOURCES block at the top of the pane
-// (so a citation is always visible beside the guide), any missable or caution banner, the
-// atlas's own-words guide, its counter progress, its roadmap stage, and a personal note.
-import { isEarned, setCounter, setNote, counterOf } from '../store.js';
-import { gradeLabel, stageOf, isMasked, displayName, displayDescription, formatCount } from '../data.js';
+// detail.js — the guide pane for one trophy.
+//
+// Layout matters here: name and description first, then — at the very top,
+// before a single word of advice — the SOURCES box naming where the trophy
+// data and guide facts come from, and a status line saying whether the
+// guide is fully sourced or partly our own advice that the game has not
+// confirmed yet. Then the guide itself, a counter stepper for counted
+// trophies, and the player's private notes.
 
-export function counterControls(trophy, state, onChange) {
-  const wrap = document.createElement('div');
-  wrap.className = 'counter-box';
-  const minus = document.createElement('button');
-  minus.type = 'button';
-  minus.textContent = '−';
-  minus.title = 'One less';
-  const input = document.createElement('input');
-  input.type = 'number';
-  input.min = '0';
-  input.max = String(trophy.target.count);
-  input.value = String(counterOf(state, trophy));
-  const plus = document.createElement('button');
-  plus.type = 'button';
-  plus.textContent = '+';
-  plus.title = 'One more';
-  const target = document.createElement('span');
-  target.className = 'counter-target';
-  target.textContent = `/ ${formatCount(trophy.target.count, trophy.target.unit)} ${trophy.target.unit}`;
-  const apply = (value) => {
-    input.value = String(setCounter(state, trophy, value));
-    if (onChange) onChange();
-  };
-  minus.addEventListener('click', (e) => { e.stopPropagation(); apply(counterOf(state, trophy) - stepOf(trophy)); });
-  plus.addEventListener('click', (e) => { e.stopPropagation(); apply(counterOf(state, trophy) + stepOf(trophy)); });
-  input.addEventListener('click', (e) => e.stopPropagation());
-  input.addEventListener('change', () => apply(Number(input.value)));
-  wrap.append(minus, input, plus, target);
-  return wrap;
-}
+import {
+  trophy,
+  displayName,
+  displayDescription,
+  gradeLabel,
+  kindLabel,
+  stageName,
+  formatCount,
+} from '../data.js';
+import { isEarned, setEarned, counterOf, setCounter, noteOf, setNote } from '../store.js';
+import { esc } from './checklist.js';
 
-function stepOf(trophy) {
-  return trophy.target.count >= 10000 ? 1000 : 1;
-}
-
-export function renderDetail(pane, trophy, ctx) {
-  const { data, state } = ctx;
-  pane.replaceChildren();
-  if (!trophy) {
-    const p = document.createElement('p');
-    p.className = 'detail-desc';
-    p.textContent = 'Pick any trophy in the list to read its guide here — what to do, where and how, when it can be missed, and the sources each fact comes from.';
-    const h = document.createElement('h2');
-    h.textContent = 'Guide pane';
-    pane.append(h, p);
+export function renderDetail(root, ctx) {
+  const t = trophy(ctx.selectedId);
+  if (!t) {
+    root.innerHTML = '';
+    root.classList.remove('pane-open');
     return;
   }
-  const masked = isMasked(state, trophy);
-  const close = document.createElement('button');
-  close.type = 'button';
-  close.className = 'btn detail-close';
-  close.textContent = 'Close ✕';
-  close.addEventListener('click', () => ctx.openTrophy(null));
+  root.classList.add('pane-open');
+  const { state } = ctx;
+  const earned = isEarned(t.id);
 
-  const meta = document.createElement('div');
-  meta.className = 'row-meta';
-  const chip = document.createElement('span');
-  chip.className = `grade-chip grade-${trophy.grade}`;
-  chip.textContent = gradeLabel(trophy.grade);
-  meta.append(chip);
-  if (trophy.hidden) {
-    const b = document.createElement('span');
-    b.className = 'badge badge-hidden';
-    b.textContent = 'Hidden on PSN';
-    meta.append(b);
-  }
-  const kind = document.createElement('span');
-  kind.className = 'badge badge-kind';
-  kind.textContent = trophy.kind;
-  meta.append(kind);
-  const stage = stageOf(data, trophy);
-  if (stage) {
-    const s = document.createElement('span');
-    s.className = 'badge badge-stage';
-    s.textContent = `Roadmap stage ${stage.id} — ${stage.title}`;
-    meta.append(s);
-  }
-  if (isEarned(state, trophy.id)) {
-    const done = document.createElement('span');
-    done.className = 'badge';
-    done.textContent = '✓ Earned';
-    meta.append(done);
-  }
+  const sourceLines = (t.sources ?? [])
+    .map((s) => `<li>${esc(s)}</li>`)
+    .join('');
+  const unchecked = (t.guide ?? '').includes('not yet pinned down');
+  const statusLine = unchecked
+    ? '<p class="src-status src-warn">⚠ OUR OWN ADVICE — NOT YET CHECKED IN THE GAME</p>'
+    : '<p class="src-status">Guide written from the sources above, in our own words</p>';
 
-  const h = document.createElement('h2');
-  h.textContent = displayName(state, trophy);
-  const desc = document.createElement('p');
-  desc.className = 'detail-desc';
-  desc.textContent = displayDescription(state, trophy);
-  pane.append(close, meta, h, desc);
+  const stepper = t.target
+    ? `<div class="stepper">
+         <span class="stepper-label">Progress: <strong>${formatCount(t, counterOf(t.id))}</strong> / ${formatCount(t, t.target.target)}${t.target.unit === '$' ? '' : ' ' + esc(t.target.unit)}</span>
+         <button type="button" class="step-btn" data-step="-1" aria-label="Decrease">−</button>
+         <button type="button" class="step-btn" data-step="1" aria-label="Increase">+</button>
+         <button type="button" class="step-btn step-big" data-step="10">+10</button>
+       </div>`
+    : '';
 
-  // SOURCES block: first thing under the name/description, above the guide, so the citation
-  // is always in frame beside the advice it backs. One line per source, then an honesty
-  // status: unverified guidance is flagged as our own advice, everything else states it was
-  // written from the sources above in our own words.
-  const sourcesBox = document.createElement('div');
-  sourcesBox.className = 'sources-box';
-  const sourcesHeading = document.createElement('div');
-  sourcesHeading.className = 'sources-heading';
-  sourcesHeading.textContent = 'SOURCES';
-  sourcesBox.append(sourcesHeading);
-  for (const source of trophy.sources) {
-    const line = document.createElement('div');
-    line.className = 'sources-item';
-    line.textContent = source;
-    sourcesBox.append(line);
-  }
-  const sourcesStatus = document.createElement('div');
-  if (trophy.guide.includes('not yet pinned down')) {
-    sourcesStatus.className = 'sources-status sources-status-advice';
-    sourcesStatus.textContent = '⚠ Our own advice — not yet checked in the game';
-  } else {
-    sourcesStatus.className = 'sources-status';
-    sourcesStatus.textContent = 'Guide written from the sources above, in our own words';
-  }
-  sourcesBox.append(sourcesStatus);
-  pane.append(sourcesBox);
+  root.innerHTML = `
+    <div class="pane-head">
+      <div class="pane-chips">
+        <span class="chip grade-${t.grade}">${gradeLabel(t)}</span>
+        <span class="chip">${kindLabel(t)}</span>
+        ${t.hidden ? '<span class="chip chip-hidden">Hidden</span>' : ''}
+        ${t.missable ? '<span class="chip chip-missable">Missable</span>' : ''}
+        <span class="chip chip-stage">${stageName(t)}</span>
+      </div>
+      <button type="button" class="pane-close" data-close aria-label="Close guide">Close ✕</button>
+    </div>
+    <p class="pane-earned">${earned ? '✓ Earned' : 'Not yet earned'}</p>
+    <h2 class="pane-name">${esc(displayName(t, state))}</h2>
+    <p class="pane-desc">${esc(displayDescription(t, state))}</p>
 
-  if (trophy.missable) {
-    const alert = document.createElement('div');
-    alert.className = 'alert alert-missable';
-    const b = document.createElement('b');
-    b.textContent = '⚠ Missable — ';
-    alert.append(b, document.createTextNode(trophy.caution ?? 'This trophy can be missed. Read the guide before you play on.'));
-    pane.append(alert);
-  } else if (trophy.caution) {
-    const alert = document.createElement('div');
-    alert.className = 'alert alert-caution';
-    const b = document.createElement('b');
-    b.textContent = 'Caution — ';
-    alert.append(b, document.createTextNode(trophy.caution));
-    pane.append(alert);
-  }
+    <div class="sources-box">
+      <h3 class="sources-title">SOURCES</h3>
+      <ul class="sources-list">${sourceLines}</ul>
+      ${statusLine}
+    </div>
 
-  const guide = document.createElement('p');
-  guide.className = 'detail-guide';
-  guide.textContent = masked
-    ? 'Guide hidden by the spoiler setting: earn this story trophy to reveal it, or turn off Hide spoilers in the header.'
-    : trophy.guide;
-  pane.append(guide);
+    <div class="pane-guide">${esc(t.guide)}</div>
+    ${stepper}
+    <label class="pane-check">
+      <input type="checkbox" data-earned${earned ? ' checked' : ''}> Mark as earned
+    </label>
+    <label class="notes-label" for="note-box">Your notes</label>
+    <textarea id="note-box" class="notes" rows="3" placeholder="Spots found, cars still missing, anything…">${esc(noteOf(t.id))}</textarea>`;
 
-  if (trophy.target) {
-    const label = document.createElement('p');
-    label.className = 'note-label';
-    label.textContent = `Your count — ${trophy.target.unit}`;
-    pane.append(label, counterControls(trophy, state, () => ctx.refresh()));
-    const pct = Math.min(100, Math.round((counterOf(state, trophy) / trophy.target.count) * 100));
-    const track = document.createElement('div');
-    track.className = 'mini-track';
-    const fill = document.createElement('div');
-    fill.className = 'mini-fill';
-    fill.style.width = `${pct}%`;
-    track.append(fill);
-    pane.append(track);
-  }
-
-  const noteLabel = document.createElement('label');
-  noteLabel.className = 'note-label';
-  noteLabel.textContent = 'Your note for this trophy';
-  const note = document.createElement('textarea');
-  note.className = 'note-area';
-  note.placeholder = 'e.g. two card sets done, third is the Vice City set…';
-  note.value = state.notes[trophy.id] ?? '';
-  note.addEventListener('input', () => setNote(state, trophy.id, note.value));
-  pane.append(noteLabel, note);
+  root.querySelector('[data-close]').addEventListener('click', () => ctx.onClose());
+  root.querySelector('[data-earned]').addEventListener('change', (e) =>
+    setEarned(t.id, e.target.checked),
+  );
+  root.querySelectorAll('[data-step]').forEach((b) =>
+    b.addEventListener('click', () =>
+      setCounter(t.id, counterOf(t.id) + Number(b.dataset.step)),
+    ),
+  );
+  const noteBox = root.querySelector('#note-box');
+  noteBox.addEventListener('change', () => setNote(t.id, noteBox.value.trim()));
 }
