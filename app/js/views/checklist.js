@@ -1,23 +1,11 @@
 // checklist.js — the tracker view: search, kind/grade/status filters and
 // the 55 trophy rows. Rows show official name and description, grade, kind,
 // hidden and roadmap-stage chips, and live counter progress where a trophy
-// counts toward a target.
+// counts toward a target. Unearned hidden trophies render fully covered:
+// no name, description, kind, stage or counter leaks through.
 
-import {
-  KIND_FILTERS,
-  GRADE_FILTERS,
-  STATUS_FILTERS,
-  matchesFilters,
-} from '../filters.js';
-import {
-  allTrophies,
-  displayName,
-  displayDescription,
-  gradeLabel,
-  kindLabel,
-  stageName,
-  formatCount,
-} from '../data.js';
+import { KIND_FILTERS, GRADE_FILTERS, STATUS_FILTERS, matchesFilters } from '../filters.js';
+import { allTrophies, displayName, displayDescription, gradeLabel, kindLabel, stageName, formatCount, isCovered } from '../data.js';
 import { isEarned, counterOf } from '../store.js';
 
 export function esc(s) {
@@ -28,18 +16,20 @@ export function esc(s) {
     .replaceAll('"', '&quot;');
 }
 
-function chips(t) {
-  const out = [
-    `<span class="chip grade-${t.grade}">${gradeLabel(t)}</span>`,
-    `<span class="chip">${kindLabel(t)}</span>`,
-  ];
+function chips(t, covered) {
+  const out = [`<span class="chip grade-${t.grade}">${gradeLabel(t)}</span>`];
+  if (covered) {
+    out.push('<span class="chip chip-hidden">Hidden</span>');
+    return out.join(' ');
+  }
+  out.push(`<span class="chip">${kindLabel(t)}</span>`);
   if (t.hidden) out.push('<span class="chip chip-hidden">Hidden</span>');
   if (t.missable) out.push('<span class="chip chip-missable">Missable</span>');
   out.push(`<span class="chip chip-stage">${stageName(t)}</span>`);
   return out.join(' ');
 }
 
-function counterBit(t, state) {
+function counterBit(t) {
   if (!t.target) return '';
   const cur = counterOf(t.id);
   const pct = Math.min(100, Math.round((cur / t.target.target) * 100));
@@ -51,10 +41,8 @@ export function renderChecklist(root, ctx) {
   const list = allTrophies().filter((t) => matchesFilters(t, filters, state));
 
   const kindBtns = KIND_FILTERS.map(
-    (k) =>
-      `<button type="button" class="pill${filters.kind === k.id ? ' pill-on' : ''}" data-kind="${k.id}">${k.label}</button>`,
+    (k) => `<button type="button" class="pill${filters.kind === k.id ? ' pill-on' : ''}" data-kind="${k.id}">${k.label}</button>`,
   ).join('');
-
   const gradeOpts = GRADE_FILTERS.map(
     (g) => `<option value="${g.id}"${filters.grade === g.id ? ' selected' : ''}>${g.label}</option>`,
   ).join('');
@@ -80,16 +68,17 @@ export function renderChecklist(root, ctx) {
       list
         .map((t) => {
           const earned = isEarned(t.id);
-          return `<article class="row${earned ? ' row-earned' : ''}" data-open="${t.id}">
+          const covered = isCovered(t, state);
+          return `<article class="row${earned ? ' row-earned' : ''}${covered ? ' row-covered' : ''}" data-open="${t.id}">
             <label class="row-check" title="Mark earned">
               <input type="checkbox" data-toggle="${t.id}"${earned ? ' checked' : ''}>
             </label>
             <div class="row-main">
               <h3 class="row-name">${esc(displayName(t, state))}</h3>
               <p class="row-desc">${esc(displayDescription(t, state))}</p>
-              <div class="row-chips">${chips(t)}</div>
+              <div class="row-chips">${chips(t, covered)}</div>
             </div>
-            <div class="row-side">${counterBit(t, state)}</div>
+            <div class="row-side">${covered ? '' : counterBit(t)}</div>
           </article>`;
         })
         .join('') +
@@ -116,15 +105,9 @@ export function renderChecklist(root, ctx) {
     b.addEventListener('click', () => ctx.onFilters({ ...filters, kind: b.dataset.kind })),
   );
   const search = root.querySelector('#search');
-  search.addEventListener('input', () => {
-    ctx.onFilters({ ...filters, query: search.value }, { keepFocus: true });
-  });
-  root.querySelector('#grade-filter').addEventListener('change', (e) =>
-    ctx.onFilters({ ...filters, grade: e.target.value }),
-  );
-  root.querySelector('#status-filter').addEventListener('change', (e) =>
-    ctx.onFilters({ ...filters, status: e.target.value }),
-  );
+  search.addEventListener('input', () => ctx.onFilters({ ...filters, query: search.value }, { keepFocus: true }));
+  root.querySelector('#grade-filter').addEventListener('change', (e) => ctx.onFilters({ ...filters, grade: e.target.value }));
+  root.querySelector('#status-filter').addEventListener('change', (e) => ctx.onFilters({ ...filters, status: e.target.value }));
   root.querySelectorAll('[data-toggle]').forEach((box) =>
     box.addEventListener('change', (e) => {
       e.stopPropagation();

@@ -1,7 +1,7 @@
 // planner.js — "Next Up": given where the player actually is, what is the
 // most useful next trophy? Answers in roadmap order: the missable first if
-// it is still unearned, then the next story beat, then the counters that
-// are closest to done. Spoiler masking applies here too.
+// it is still unearned, then the next story beat, then the counters closest
+// to done. Spoiler masking and the hidden-trophy cover apply here too.
 
 import { allTrophies, stages, trophy, displayName, gradeLabel, formatCount } from '../data.js';
 import { isEarned, counterOf } from '../store.js';
@@ -48,10 +48,7 @@ export function renderPlanner(root, ctx) {
     .sort((a, b) => b.pct - a.pct)
     .slice(0, 3);
   for (const { t, pct } of counters) {
-    add(
-      t,
-      `Counter at ${Math.round(pct * 100)}% — ${formatCount(t, counterOf(t.id))} of ${formatCount(t, t.target.target)} ${t.target.unit === '$' ? '' : t.target.unit}`.trim(),
-    );
+    add(t, `Counter at ${Math.round(pct * 100)}% — ${formatCount(t, counterOf(t.id))} of ${formatCount(t, t.target.target)} ${t.target.unit === '$' ? '' : t.target.unit}`.trim());
   }
 
   // 4. If nothing has been started, point at the roadmap's first steps.

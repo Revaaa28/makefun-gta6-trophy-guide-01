@@ -1,98 +1,51 @@
 // store.js — progress persistence for Leonida Legend.
-//
 // Everything the player records lives in one localStorage entry:
 //   { earned: {id: true}, counters: {id: number}, notes: {id: string},
 //     hideSpoilers: boolean }
-// It is saved on every change, exported to a JSON file on demand, and can
-// be imported back on another browser or machine. Nothing leaves the device
-// unless the player exports it themselves.
+// Saved on every change, exportable to a JSON file, importable back on
+// another browser or machine. Nothing leaves the device unless the player
+// exports it themselves.
 
 const STORAGE_KEY = 'leonida-legend-v1';
-
 const blank = () => ({ earned: {}, counters: {}, notes: {}, hideSpoilers: false });
 
 let state = blank();
 const listeners = new Set();
 
 function persist() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // Storage full or blocked: the session keeps working in memory.
-  }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* full/blocked: session keeps working in memory */ }
 }
-
-function emit() {
-  persist();
-  for (const fn of listeners) fn(state);
-}
+function emit() { persist(); for (const fn of listeners) fn(state); }
 
 export function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      state = {
-        earned: parsed.earned ?? {},
-        counters: parsed.counters ?? {},
-        notes: parsed.notes ?? {},
-        hideSpoilers: Boolean(parsed.hideSpoilers),
-      };
+      const p = JSON.parse(raw);
+      state = { earned: p.earned ?? {}, counters: p.counters ?? {}, notes: p.notes ?? {}, hideSpoilers: Boolean(p.hideSpoilers) };
     }
-  } catch {
-    state = blank();
-  }
+  } catch { state = blank(); }
   return state;
 }
 
-export function getState() {
-  return state;
-}
+export function getState() { return state; }
+export function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 
-export function subscribe(fn) {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
-}
+export function isEarned(id) { return Boolean(state.earned[id]); }
+export function setEarned(id, on) { if (on) state.earned[id] = true; else delete state.earned[id]; emit(); }
 
-export function isEarned(id) {
-  return Boolean(state.earned[id]);
-}
-
-export function setEarned(id, on) {
-  if (on) state.earned[id] = true;
-  else delete state.earned[id];
-  emit();
-}
-
-export function counterOf(id) {
-  return state.counters[id] ?? 0;
-}
-
+export function counterOf(id) { return state.counters[id] ?? 0; }
 export function setCounter(id, value) {
   const v = Math.max(0, Math.floor(Number(value) || 0));
-  if (v === 0) delete state.counters[id];
-  else state.counters[id] = v;
+  if (v === 0) delete state.counters[id]; else state.counters[id] = v;
   emit();
 }
 
-export function noteOf(id) {
-  return state.notes[id] ?? '';
-}
+export function noteOf(id) { return state.notes[id] ?? ''; }
+export function setNote(id, text) { if (text) state.notes[id] = text; else delete state.notes[id]; emit(); }
 
-export function setNote(id, text) {
-  if (text) state.notes[id] = text;
-  else delete state.notes[id];
-  emit();
-}
-
-export function spoilersHidden() {
-  return state.hideSpoilers;
-}
-
-export function setSpoilersHidden(on) {
-  state.hideSpoilers = Boolean(on);
-  emit();
-}
+export function spoilersHidden() { return state.hideSpoilers; }
+export function setSpoilersHidden(on) { state.hideSpoilers = Boolean(on); emit(); }
 
 export function exportProgress() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
@@ -108,14 +61,9 @@ export function exportProgress() {
 
 export function importProgress(file) {
   return file.text().then((text) => {
-    const parsed = JSON.parse(text);
-    if (typeof parsed !== 'object' || parsed === null) throw new Error('not a progress file');
-    state = {
-      earned: parsed.earned ?? {},
-      counters: parsed.counters ?? {},
-      notes: parsed.notes ?? {},
-      hideSpoilers: Boolean(parsed.hideSpoilers),
-    };
+    const p = JSON.parse(text);
+    if (typeof p !== 'object' || p === null) throw new Error('not a progress file');
+    state = { earned: p.earned ?? {}, counters: p.counters ?? {}, notes: p.notes ?? {}, hideSpoilers: Boolean(p.hideSpoilers) };
     emit();
     return state;
   });

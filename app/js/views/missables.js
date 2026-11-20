@@ -1,7 +1,7 @@
 // missables.js — the danger page. GTA VI's list is kind in one specific
 // way: exactly one thing can be lost forever (Lucia's Chapter 1 balcony
 // meditation, inside Positive Mental Attitude), and it gets a red hero
-// card with its source printed on it. Everything below it is a caution,
+// card with its source printed on it. Everything below is a caution,
 // not a lockout.
 
 import { trophy, displayName } from '../data.js';

@@ -1,4 +1,4 @@
-// filters.js — the checklist's filter state and the matching rule.
+// filters.js — the checklist's filter state and matching rule.
 // Kinds are the guide's own taxonomy (story / missable / collectibles /
 // activities) plus an "online" bucket that intentionally matches nothing:
 // GTA VI has no online trophies at launch, and the view says so honestly.
@@ -44,9 +44,8 @@ export function matchesFilters(t, f, state) {
   if (f.status === 'earned' && !earned) return false;
   if (f.status === 'remaining' && earned) return false;
   if (f.query) {
-    const q = f.query.toLowerCase();
     const hay = `${t.name} ${t.description} ${t.guide}`.toLowerCase();
-    if (!hay.includes(q)) return false;
+    if (!hay.includes(f.query.toLowerCase())) return false;
   }
   return true;
 }

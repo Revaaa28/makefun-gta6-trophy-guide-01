@@ -3,15 +3,7 @@
 // export/import, and the keyboard shortcuts (/ searches, Esc closes).
 
 import { loadData, allTrophies } from './data.js';
-import {
-  load,
-  getState,
-  subscribe,
-  setEarned,
-  setSpoilersHidden,
-  exportProgress,
-  importProgress,
-} from './store.js';
+import { load, getState, subscribe, setEarned, setSpoilersHidden, exportProgress, importProgress } from './store.js';
 import { blankFilters } from './filters.js';
 import { renderChecklist } from './views/checklist.js';
 import { renderRoadmap } from './views/roadmap.js';
@@ -67,9 +59,7 @@ function renderHeader() {
       </div>
     </div>`;
 
-  headerEl.querySelector('#spoiler-toggle').addEventListener('change', (e) =>
-    setSpoilersHidden(e.target.checked),
-  );
+  headerEl.querySelector('#spoiler-toggle').addEventListener('change', (e) => setSpoilersHidden(e.target.checked));
   headerEl.querySelector('#export-btn').addEventListener('click', exportProgress);
   const fileInput = headerEl.querySelector('#import-file');
   headerEl.querySelector('#import-btn').addEventListener('click', () => fileInput.click());
@@ -81,14 +71,10 @@ function renderHeader() {
 
 function renderNav() {
   navEl.innerHTML = VIEWS.map(
-    (v) =>
-      `<button type="button" class="nav-btn${view === v.id ? ' nav-on' : ''}" data-view="${v.id}">${v.label}</button>`,
+    (v) => `<button type="button" class="nav-btn${view === v.id ? ' nav-on' : ''}" data-view="${v.id}">${v.label}</button>`,
   ).join('');
   navEl.querySelectorAll('[data-view]').forEach((b) =>
-    b.addEventListener('click', () => {
-      view = b.dataset.view;
-      render();
-    }),
+    b.addEventListener('click', () => { view = b.dataset.view; render(); }),
   );
 }
 
@@ -104,14 +90,8 @@ function ctx() {
       keepSearchFocus = false;
     },
     onToggle: (id, on) => setEarned(id, on),
-    onOpen: (id) => {
-      selectedId = id;
-      render();
-    },
-    onClose: () => {
-      selectedId = null;
-      render();
-    },
+    onOpen: (id) => { selectedId = id; render(); },
+    onClose: () => { selectedId = null; render(); },
     selectedId,
   };
 }
@@ -128,10 +108,7 @@ function render() {
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && selectedId !== null) {
-    selectedId = null;
-    render();
-  }
+  if (e.key === 'Escape' && selectedId !== null) { selectedId = null; render(); }
   if (e.key === '/' && view === 'checklist') {
     const tag = document.activeElement?.tagName;
     if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {

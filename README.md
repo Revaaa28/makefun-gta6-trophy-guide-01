@@ -12,10 +12,10 @@ them hidden. Built for the make.fun bounty
 ## What it does
 
 - **Checklist & tracker** — every trophy with its official name, description
-  and grade. Tick trophies off, track counters toward their targets (250
-  stunts, 100 vehicles, $250,000 laundered…), and keep a private note per
-  trophy. Progress saves itself in the browser; export it to a file and
-  import it anywhere.
+  and grade. Tick trophies off, step counters toward their targets with the
+  detail pane's +/− stepper (250 stunts, 100 vehicles, $250,000 laundered…),
+  and keep a private note per trophy. Progress saves itself in the browser;
+  export it to a file and import it anywhere.
 - **A cited guide for every trophy** — written in our own words, and every
   guide pane opens with a **SOURCES** box naming where its facts come from
   (Exophase, PSNProfiles, Output Lag), plus an honest status line where a
@@ -23,8 +23,10 @@ them hidden. Built for the make.fun bounty
 - **Filters & search** — by kind (story, missable, collectibles, activities,
   online), grade and earned status. The online filter answers honestly:
   there are no online trophies at launch.
-- **Spoiler setting** — "Hide spoilers" masks unearned story trophies
-  everywhere, planner included, until you earn them.
+- **Spoiler protection** — hidden trophies stay fully covered (name,
+  description and context) until you earn them, and the "Hide spoilers"
+  setting additionally masks unearned story trophies everywhere, planner
+  included.
 - **Roadmap to the Platinum** — eight stages in play order, from save
   discipline (there is no mission replay and no New Game+) to the 100%
   grind, each with live per-stage progress.
@@ -51,9 +53,11 @@ with Rockstar Games.
 
 ## Screenshots
 
-1. `screenshots/1-cover.jpg` — the checklist with Sneakthief's guide open and
-   its SOURCES box at the top of the pane.
-2. `screenshots/2-roadmap.jpg` — the eight-stage roadmap to the Platinum.
-3. `screenshots/3-missables.jpg` — the one true missable, flagged in red with
-   its source line.
-4. `screenshots/4-planner.jpg` — the Next Up planner with spoilers hidden.
+1. `screenshots/1-cover.jpg` — the checklist with Sneakthief's guide open,
+   its SOURCES box at the top of the pane, and unearned hidden trophies
+   covered.
+2. `screenshots/2-detail.jpg` — Cunning Stunts' guide pane: SOURCES box,
+   the 137-of-250 progress stepper, and the notes field.
+3. `screenshots/3-roadmap.jpg` — the eight-stage roadmap to the Platinum.
+4. `screenshots/4-missables.jpg` — the one true missable, flagged in red
+   with its source line.

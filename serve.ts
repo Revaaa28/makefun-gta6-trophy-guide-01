@@ -1,6 +1,6 @@
-// A minimal static file server for previewing the guide locally.
+// Minimal static file server for previewing the guide locally.
 // Usage: node serve.ts [--port 8080]  →  http://localhost:8080
-// It serves only files inside app/, with the content types a browser needs
+// Serves only files inside app/, with the content types a browser needs
 // for HTML, CSS, ES modules and JSON. Development convenience only.
 
 import { createReadStream, statSync } from 'node:fs';
