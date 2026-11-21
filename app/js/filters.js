@@ -1,44 +1,49 @@
-export const KIND_FILTERS = [
-  { id: 'all', label: 'All kinds' },
-  { id: 'story', label: 'Story' },
-  { id: 'missable', label: 'Missable' },
-  { id: 'collectibles', label: 'Collectibles' },
-  { id: 'activities', label: 'Activities' },
-  { id: 'online', label: 'Online' },
+// Filter state for the checklist and the predicate a trophy is tested
+// against. Kinds are story / collectibles / activities, plus two virtual
+// kinds: "missable" (the trophies flagged missable) and "online" (which
+// matches nothing — there are no online trophies at launch).
+
+export const KIND_CHIPS = [
+  ['all', 'All kinds'],
+  ['story', 'Story'],
+  ['missable', 'Missable'],
+  ['collectibles', 'Collectibles'],
+  ['activities', 'Activities'],
+  ['online', 'Online'],
 ];
 
-export const GRADE_FILTERS = [
-  { id: 'all', label: 'All grades' },
-  { id: 'platinum', label: 'Platinum' },
-  { id: 'gold', label: 'Gold' },
-  { id: 'silver', label: 'Silver' },
-  { id: 'bronze', label: 'Bronze' },
+export const GRADE_OPTIONS = [
+  ['all', 'All grades'],
+  ['platinum', 'Platinum'],
+  ['gold', 'Gold'],
+  ['silver', 'Silver'],
+  ['bronze', 'Bronze'],
 ];
 
-export const STATUS_FILTERS = [
-  { id: 'all', label: 'Earned + remaining' },
-  { id: 'earned', label: 'Earned only' },
-  { id: 'remaining', label: 'Remaining only' },
+export const STATUS_OPTIONS = [
+  ['all', 'Earned + remaining'],
+  ['earned', 'Earned'],
+  ['remaining', 'Remaining'],
 ];
 
-export function blankFilters() { return { query: '', kind: 'all', grade: 'all', status: 'all' }; }
-
-export function matchesKind(t, kind) {
-  if (kind === 'all') return true;
-  if (kind === 'missable') return t.missable === true;
-  if (kind === 'online') return false;
-  return t.kind === kind;
+export function makeFilters() {
+  return { kind: 'all', grade: 'all', status: 'all', query: '' };
 }
 
-export function matchesFilters(t, f, state) {
-  if (!matchesKind(t, f.kind)) return false;
+export function matches(t, f, state) {
+  if (f.kind === 'online') return false;
+  if (f.kind === 'missable') {
+    if (!t.missable) return false;
+  } else if (f.kind !== 'all' && t.kind !== f.kind) {
+    return false;
+  }
   if (f.grade !== 'all' && t.grade !== f.grade) return false;
-  const earned = Boolean(state.earned[t.id]);
+  const earned = state.earned.includes(t.id);
   if (f.status === 'earned' && !earned) return false;
   if (f.status === 'remaining' && earned) return false;
   if (f.query) {
-    const hay = `${t.name} ${t.description} ${t.guide}`.toLowerCase();
-    if (!hay.includes(f.query.toLowerCase())) return false;
+    const hay = `${t.name} ${t.description}`.toLowerCase();
+    if (!hay.includes(f.query.trim().toLowerCase())) return false;
   }
   return true;
 }

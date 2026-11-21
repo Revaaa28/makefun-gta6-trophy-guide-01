@@ -1,72 +1,101 @@
-import { trophy, displayName, displayDescription, gradeLabel, kindLabel, stageName, formatCount, isCovered } from '../data.js';
-import { isEarned, setEarned, counterOf, setCounter, noteOf, setNote } from '../store.js';
-import { esc } from './checklist.js';
+// The guide pane: one trophy in full. The SOURCES box always comes first —
+// a reader should see where the facts come from before the advice built on
+// them. Covered (hidden, unearned) trophies show none of it.
 
-export function renderDetail(root, ctx) {
-  const t = trophy(ctx.selectedId);
+import { COVERED_DESC, displayDesc, displayName, isCovered } from '../data.js';
+import { counterOf, isEarned, setCounter, setNote, toggleEarned } from '../store.js';
+
+export const GRADE_LABEL = { platinum: 'Platinum', gold: 'Gold', silver: 'Silver', bronze: 'Bronze' };
+export const KIND_LABEL = { story: 'Story', collectibles: 'Collectibles', activities: 'Activities' };
+
+export const fmt = (n) => n.toLocaleString('en-US');
+
+export function progressText(t, state) {
+  const n = counterOf(state, t.id);
+  if (t.target.unit === '$') return `$${fmt(n)} of $${fmt(t.target.target)}`;
+  return `${fmt(n)} of ${fmt(t.target.target)} ${t.target.unit}`;
+}
+
+function chip(ctx, text, cls) {
+  return ctx.el('span', { class: `chip ${cls || ''}` }, text);
+}
+
+// The chip row for a trophy. A covered trophy gets only its grade chip and
+// the Hidden chip — kind, stage and missable would give the trophy away.
+export function chipsFor(ctx, t, state, { withStatus = false } = {}) {
+  const chips = [chip(ctx, GRADE_LABEL[t.grade], `g-${t.grade}`)];
+  if (isCovered(t, state)) {
+    chips.push(chip(ctx, 'Hidden', 'k-hidden'));
+    return chips;
+  }
+  if (withStatus) {
+    chips.push(isEarned(state, t.id)
+      ? chip(ctx, 'Earned', 'status-earned')
+      : chip(ctx, 'Not earned', ''));
+  }
+  chips.push(chip(ctx, KIND_LABEL[t.kind], ''));
+  chips.push(chip(ctx, `Stage ${t.stage}`, ''));
+  if (t.hidden) chips.push(chip(ctx, 'Hidden', 'k-hidden'));
+  if (t.missable) chips.push(chip(ctx, 'Missable', 'k-missable'));
+  return chips;
+}
+
+export function renderDetail(pane, ctx, t, refresh) {
+  const { el, state } = ctx;
+  pane.replaceChildren();
   if (!t) {
-    root.innerHTML = '';
-    root.classList.remove('pane-open');
+    pane.append(el('p', { class: 'placeholder' }, 'Select a trophy from the list to read its guide.'));
     return;
   }
-  root.classList.add('pane-open');
-  const { state } = ctx;
-  const earned = isEarned(t.id);
-  const covered = isCovered(t, state);
 
-  const sourceLines = (t.sources ?? []).map((s) => `<li>${esc(s)}</li>`).join('');
-  const unchecked = (t.guide ?? '').includes('not yet pinned down');
-  const statusLine = unchecked
-    ? '<p class="src-status src-warn">⚠ OUR OWN ADVICE — NOT YET CHECKED IN THE GAME</p>'
-    : '<p class="src-status">Guide written from the sources above, in our own words</p>';
+  const earned = isEarned(state, t.id);
+  const toggleBtn = el('button', {
+    class: 'btn' + (earned ? '' : ' primary'),
+    type: 'button',
+    onclick: () => { toggleEarned(state, t.id); ctx.changed(); refresh(); },
+  }, earned ? 'Mark as not earned' : 'Mark as earned');
 
-  const unit = t.target ? (t.target.unit === '$' ? '' : ' ' + esc(t.target.unit)) : '';
-  const stepper = t.target
-    ? `<div class="stepper">
-         <span class="stepper-label">Progress: <strong>${formatCount(t, counterOf(t.id))} of ${formatCount(t, t.target.target)}</strong>${unit}</span>
-         <button type="button" class="step-btn" data-step="-1" aria-label="Decrease">−</button>
-         <button type="button" class="step-btn" data-step="1" aria-label="Increase">+</button>
-         <button type="button" class="step-btn step-big" data-step="10">+10</button>
-       </div>`
-    : '';
+  if (isCovered(t, state)) {
+    pane.append(
+      el('div', { class: 'pmeta' }, chipsFor(ctx, t, state)),
+      el('h3', {}, 'Hidden trophy'),
+      el('p', { class: 'pdesc' }, COVERED_DESC),
+      el('p', { class: 'guide' }, 'This trophy is hidden on the official list, so its name, description and guide stay covered here until you earn it in the game.'),
+      toggleBtn,
+    );
+    return;
+  }
 
-  const paneChips = covered
-    ? `<span class="chip grade-${t.grade}">${gradeLabel(t)}</span>
-       <span class="chip chip-hidden">Hidden</span>`
-    : `<span class="chip grade-${t.grade}">${gradeLabel(t)}</span>
-       <span class="chip">${kindLabel(t)}</span>
-       ${t.hidden ? '<span class="chip chip-hidden">Hidden</span>' : ''}
-       ${t.missable ? '<span class="chip chip-missable">Missable</span>' : ''}
-       <span class="chip chip-stage">${stageName(t)}</span>`;
-
-  root.innerHTML = `
-    <div class="pane-head">
-      <div class="pane-chips">${paneChips}</div>
-      <button type="button" class="pane-close" data-close aria-label="Close guide">Close ✕</button>
-    </div>
-    <p class="pane-earned">${earned ? '✓ Earned' : 'Not yet earned'}</p>
-    <h2 class="pane-name">${esc(displayName(t, state))}</h2>
-    <p class="pane-desc">${esc(displayDescription(t, state))}</p>
-
-    <div class="sources-box">
-      <h3 class="sources-title">SOURCES</h3>
-      <ul class="sources-list">${sourceLines}</ul>
-      ${statusLine}
-    </div>
-
-    <div class="pane-guide">${esc(t.guide)}</div>
-    ${stepper}
-    <label class="pane-check">
-      <input type="checkbox" data-earned${earned ? ' checked' : ''}> Mark as earned
-    </label>
-    <label class="notes-label" for="note-box">Your notes</label>
-    <textarea id="note-box" class="notes" rows="3" placeholder="Spots found, cars still missing, anything…">${esc(noteOf(t.id))}</textarea>`;
-
-  root.querySelector('[data-close]').addEventListener('click', () => ctx.onClose());
-  root.querySelector('[data-earned]').addEventListener('change', (e) => setEarned(t.id, e.target.checked));
-  root.querySelectorAll('[data-step]').forEach((b) =>
-    b.addEventListener('click', () => setCounter(t.id, counterOf(t.id) + Number(b.dataset.step))),
+  const head = el('div', { class: 'pmeta' }, chipsFor(ctx, t, state, { withStatus: true }));
+  const sources = el('div', { class: 'sources' },
+    el('h4', {}, 'SOURCES'),
+    el('ul', {}, t.sources.map((s) => el('li', {}, s))),
+    el('p', { class: 'closing' }, 'Guide written from the sources above, in our own words.'),
   );
-  const noteBox = root.querySelector('#note-box');
-  noteBox.addEventListener('change', () => setNote(t.id, noteBox.value.trim()));
+
+  pane.append(head, el('h3', {}, displayName(t, state)), el('p', { class: 'pdesc' }, displayDesc(t, state)), sources, el('p', { class: 'guide' }, t.guide));
+
+  if (t.target) {
+    const label = el('span', { class: 'plabel', 'aria-live': 'polite' }, `Progress: ${progressText(t, state)}`);
+    const step = (delta) => () => {
+      setCounter(state, t.id, counterOf(state, t.id) + delta, t.target);
+      ctx.save();
+      refresh();
+    };
+    pane.append(el('div', { class: 'prow' },
+      label,
+      el('button', { class: 'stepbtn', type: 'button', 'aria-label': 'Decrease counter', onclick: step(-1) }, '−'),
+      el('button', { class: 'stepbtn', type: 'button', 'aria-label': 'Increase counter', onclick: step(1) }, '+'),
+      el('button', { class: 'stepbtn wide', type: 'button', 'aria-label': 'Increase counter by ten', onclick: step(10) }, '+10'),
+    ));
+  }
+
+  const notes = el('textarea', {
+    placeholder: 'Your own notes for this trophy…',
+    'aria-label': `Your notes for ${t.name}`,
+  });
+  notes.value = state.notes[t.id] || '';
+  notes.addEventListener('input', () => { setNote(state, t.id, notes.value); ctx.save(); });
+
+  pane.append(toggleBtn, el('label', { class: 'notes-label' }, 'Your notes'), notes);
 }

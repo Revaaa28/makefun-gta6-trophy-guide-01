@@ -1,4 +1,6 @@
 # Leonida Legend — GTA VI Trophy Atlas
 # build output and local state
 out/
-# build output from main.ts goes to out/ (see MAKEFUN_OUTPUT_DIR)
+node_modules/
+*.log
+.DS_Store

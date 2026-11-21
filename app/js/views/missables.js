@@ -1,56 +1,41 @@
-import { trophy, displayName } from '../data.js';
-import { isEarned, counterOf } from '../store.js';
-import { esc } from './checklist.js';
+// The missables page. There is exactly one true missable in the game, and
+// it gets the red hero card; everything else that merely deserves care is
+// a lesser caution below it.
 
-export function renderMissables(root, ctx) {
-  const { state } = ctx;
-  const pma = trophy(28);
-  const earned = isEarned(28);
-  const spots = counterOf(28);
+import { trophyById } from '../data.js';
+import { counterOf, isEarned } from '../store.js';
 
-  root.innerHTML = `
-    <div class="view-intro">
-      <h2>Missables &amp; one-time warnings</h2>
-      <p>Almost everything in Leonida waits for you — strand finales stay open after the
-      credits, and story missions retry from checkpoints. One thing does not wait:</p>
-    </div>
+export function renderMissables(container, ctx) {
+  const { el, state } = ctx;
+  const pma = trophyById(28);
+  const spots = counterOf(state, 28);
+  const spotTarget = pma.target.target;
 
-    <section class="missable-hero">
-      <p class="hero-flag">⚠ THE ONE TRUE MISSABLE</p>
-      <h3>${esc(displayName(pma, state))} — Chapter 1</h3>
-      <p>Lucia's balcony meditation spot counts toward this trophy's 18 meditation spots,
-      and it is only there during Chapter 1. Finish Chapter 1 without it and no save, replay
-      or New Game+ (there is none) can bring it back — the Platinum would need a fresh run.</p>
-      <p><strong>Do it before Chapter 1 ends.</strong> The other 17 spots stay available all game.</p>
-      <p class="hero-status">${earned ? '✓ Earned — crisis averted.' : `Your tracker: ${spots} / 18 spots meditated.`}</p>
-      <p class="hero-source">Source: Output Lag — GTA 6 Trophy List guide (Nov 19, 2026)</p>
-      <button type="button" class="hero-btn" data-open="28">Open the full guide</button>
-    </section>
+  const hero = el('section', { class: 'hero' },
+    el('h3', {}, '⚠ THE ONE TRUE MISSABLE — Positive Mental Attitude, Chapter 1'),
+    el('p', {}, 'One of the 18 meditation spots this trophy counts sits on Lucia\u2019s balcony, and it exists only during Chapter 1. Finish the chapter without meditating there and it is gone: no save, no replay and no New Game+ brings it back, and the Platinum would need a fresh run.'),
+    el('p', {}, el('strong', {}, 'Do it before Chapter 1 ends. The other 17 spots stay available all game.')),
+    el('p', { class: 'tracker' }, isEarned(state, 28)
+      ? `Your tracker: all ${spotTarget} spots meditated — trophy earned.`
+      : `Your tracker: ${spots} of ${spotTarget} spots meditated.`),
+    el('p', { class: 'source-line' }, `Source: ${pma.sources.find((s) => s.startsWith('Output Lag')) || pma.sources[0]}`),
+    el('button', {
+      type: 'button',
+      class: 'btn primary',
+      onclick: () => ctx.go('checklist', 28),
+    }, 'Open the full guide'),
+  );
 
-    <section class="caution-list">
-      <h3>Lesser cautions — annoying, not fatal</h3>
-      <article class="caution">
-        <h4>Race Against Yago is time-sensitive</h4>
-        <p>The Chapter 3 stranger strand behind Strangers &amp; Freaks does not wait around.
-        The moment it appears on the map, drop everything and run it.</p>
-      </article>
-      <article class="caution">
-        <h4>No mission replay, no New Game+</h4>
-        <p>There is no way to redo a finished mission. Keep a manual save at the start of
-        every chapter and one before the final mission — 15 manual slots plus autosave
-        make it painless, and those saves are your only way back.</p>
-      </article>
-      <article class="caution">
-        <h4>Cheats disable trophies and saving</h4>
-        <p>Entering a cheat turns off trophy earning and saving for the session. Play the
-        Platinum run clean; keep the chaos for a throwaway save.</p>
-      </article>
-      <article class="caution">
-        <h4>Partner trophies need both of them</h4>
-        <p>Hot Together and Retail Therapy only count with Jason and Lucia together,
-        which the story allows from Chapter 2. Attempting them solo earns nothing.</p>
-      </article>
-    </section>`;
-
-  root.querySelector('[data-open]').addEventListener('click', () => ctx.onOpen(28));
+  container.replaceChildren(
+    el('h2', {}, 'Missables & one-time warnings'),
+    el('p', { class: 'lede' }, 'Almost everything in Leonida waits for you — strand finales stay open after the credits, and story missions retry from checkpoints. One thing does not wait.'),
+    hero,
+    el('h3', {}, 'Lesser cautions — annoying, not fatal'),
+    el('div', { class: 'caution' },
+      el('h4', {}, 'Race Against Yago is time-sensitive'),
+      el('p', {}, 'This Chapter 3 strand, which counts toward Strangers & Freaks, does not wait around once it appears. The moment it shows up, drop what you are doing and run it — the other strands keep, this one may not.')),
+    el('div', { class: 'caution' },
+      el('h4', {}, 'Save discipline, because there is no way back'),
+      el('p', {}, 'GTA VI has no mission replay and no New Game+. Keep a manual save at the start of every chapter and one more before the final mission — 15 manual slots plus the autosave — and never turn cheats on: they disable trophies and saving.')),
+  );
 }

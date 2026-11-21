@@ -1,39 +1,56 @@
+// Loads the two data files and expands their compact layout into the plain
+// trophy objects the views work with. Also owns the hidden-cover rule, which
+// every view applies the same way.
+
+export const COVERED_DESC = 'A hidden trophy — covered until you earn it.';
+
 let trophies = [];
 let byId = new Map();
-let roadmap = { title: '', stages: [] };
-let stageById = new Map();
+let roadmap = null;
+
+function expandTrophy(raw, srcMap) {
+  return {
+    id: raw.i,
+    name: raw.n,
+    description: raw.d,
+    grade: raw.g,
+    kind: raw.k,
+    stage: raw.s,
+    hidden: raw.h === 1,
+    missable: raw.m === 1,
+    target: raw.t ? { target: raw.t[0], unit: raw.t[1] } : null,
+    sources: (raw.src || []).map((code) => srcMap[code] || code),
+    guide: raw.gd || '',
+  };
+}
 
 export async function loadData() {
-  const [tRes, rRes] = await Promise.all([fetch('data/trophies.json'), fetch('data/roadmap.json')]);
-  if (!tRes.ok) throw new Error(`trophies.json: HTTP ${tRes.status}`);
-  if (!rRes.ok) throw new Error(`roadmap.json: HTTP ${rRes.status}`);
-  const tJson = await tRes.json();
-  roadmap = await rRes.json();
-  trophies = tJson.trophies ?? [];
+  const base = new URL('../data/', import.meta.url);
+  const [tr, rm] = await Promise.all([
+    fetch(new URL('trophies.json', base)).then((r) => r.json()),
+    fetch(new URL('roadmap.json', base)).then((r) => r.json()),
+  ]);
+  trophies = tr.trophies.map((t) => expandTrophy(t, tr.src || {}));
   byId = new Map(trophies.map((t) => [t.id, t]));
-  stageById = new Map();
-  for (const stage of roadmap.stages) for (const id of stage.trophyIds) stageById.set(id, stage);
+  roadmap = {
+    title: rm.title,
+    note: rm.note,
+    stages: rm.stages.map((s) => ({ id: s.i, name: s.n, trophyIds: s.t, guidance: s.g })),
+  };
   return { trophies, roadmap };
 }
 
-export function allTrophies() { return trophies; }
-export function trophy(id) { return byId.get(id); }
-export function stages() { return roadmap.stages; }
-export function stageOf(t) { return stageById.get(t.id) ?? roadmap.stages[t.stage] ?? null; }
-export function stageName(t) { const s = stageOf(t); return s ? `Stage ${s.id}` : ''; }
-export function isCovered(t, state) { return Boolean(t.hidden && !state.earned[t.id]); }
-export function isMasked(t, state) { return Boolean(state.hideSpoilers && t.kind === 'story' && !state.earned[t.id]); }
-export function displayName(t, state) { return isCovered(t, state) || isMasked(t, state) ? 'Hidden trophy' : t.name; }
-export function displayDescription(t, state) {
-  if (isCovered(t, state)) return 'A hidden trophy — covered until you earn it.';
-  return isMasked(t, state) ? 'A story trophy, hidden until you earn it.' : t.description;
-}
+export const allTrophies = () => trophies;
+export const trophyById = (id) => byId.get(id);
+export const getRoadmap = () => roadmap;
 
-const GRADE_LABEL = { platinum: 'Platinum', gold: 'Gold', silver: 'Silver', bronze: 'Bronze' };
-export function gradeLabel(t) { return GRADE_LABEL[t.grade] ?? t.grade; }
-export function kindLabel(t) { return t.kind.charAt(0).toUpperCase() + t.kind.slice(1); }
-export function formatCount(t, n) { return t.target && t.target.unit === '$' ? '$' + n.toLocaleString('en-US') : String(n); }
-export function formatTarget(t) {
-  if (!t.target) return '';
-  return `${formatCount(t, t.target.target)} ${t.target.unit === '$' ? '' : t.target.unit}`.trim();
-}
+export const isCovered = (t, state) => t.hidden && !state.earned.includes(t.id);
+export const displayName = (t, state) => (isCovered(t, state) ? 'Hidden trophy' : t.name);
+export const spoilerMasked = (t, state) =>
+  state.hideSpoilers && t.kind === 'story' && !state.earned.includes(t.id) && !isCovered(t, state);
+export const SPOILER_DESC = 'Description hidden while Hide spoilers is on.';
+export const displayDesc = (t, state) => {
+  if (isCovered(t, state)) return COVERED_DESC;
+  if (spoilerMasked(t, state)) return SPOILER_DESC;
+  return t.description;
+};

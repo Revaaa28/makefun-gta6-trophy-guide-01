@@ -1,67 +1,59 @@
-import { allTrophies, stages, trophy, displayName, gradeLabel, formatCount } from '../data.js';
-import { isEarned, counterOf } from '../store.js';
-import { esc } from './checklist.js';
+// Next Up: a queue computed from the player's own progress. The missable
+// leads while it is unearned, the next story beat follows, and then the
+// counters closest to done — the shortest wins first.
 
-function item(t, why, state) {
-  return `<button type="button" class="next-item" data-open="${t.id}">
-    <span class="next-why">${esc(why)}</span>
-    <span class="next-name">${esc(displayName(t, state))}</span>
-    <span class="chip grade-${t.grade}">${gradeLabel(t)}</span>
-  </button>`;
-}
+import { allTrophies, displayName, isCovered } from '../data.js';
+import { counterOf, isEarned } from '../store.js';
+import { fmt } from './detail.js';
 
-export function renderPlanner(root, ctx) {
-  const { state } = ctx;
-  const picks = [];
-  const used = new Set();
-  const add = (t, why) => {
-    if (t && !isEarned(t.id) && !used.has(t.id)) {
-      picks.push(item(t, why, state));
-      used.add(t.id);
-    }
-  };
+export function renderPlanner(container, ctx) {
+  const { el, state } = ctx;
+  const all = allTrophies();
+  const rows = [];
 
-  add(trophy(28), 'Missable — do it in Chapter 1, before anything else');
+  const row = (t, hint) => el('button', {
+    type: 'button',
+    class: 'prow-item',
+    onclick: () => ctx.go('checklist', t.id),
+  },
+    el('span', { class: 'pname' }, displayName(t, state)),
+    el('span', { class: 'phint' }, hint),
+  );
 
-  outer: for (const stage of stages()) {
-    for (const id of stage.trophyIds) {
-      const t = trophy(id);
-      if (t && t.kind === 'story' && !isEarned(t.id)) {
-        add(t, `Next story beat — Stage ${stage.id}: ${stage.name}`);
-        break outer;
-      }
-    }
+  const missable = all.find((t) => t.missable);
+  if (missable && !isEarned(state, missable.id)) {
+    const n = counterOf(state, missable.id);
+    rows.push(row(missable, n > 0
+      ? `${n} of ${missable.target.target} spots meditated — and the Chapter 1 balcony spot cannot be recovered once the chapter ends.`
+      : 'Chapter 1 only: the balcony meditation spot vanishes for good when the chapter ends.'));
   }
 
-  const counters = allTrophies()
-    .filter((t) => t.target && !isEarned(t.id))
-    .map((t) => ({ t, pct: counterOf(t.id) / t.target.target }))
-    .filter((c) => c.pct > 0)
+  const nextStory = all
+    .filter((t) => t.kind === 'story' && !isEarned(state, t.id))
+    .sort((a, b) => a.stage - b.stage || a.id - b.id)[0];
+  if (nextStory) {
+    rows.push(row(nextStory, isCovered(nextStory, state)
+      ? `Next story beat — a hidden trophy in stage ${nextStory.stage}. It uncovers when you earn it.`
+      : `Next story beat — stage ${nextStory.stage} of the roadmap.`));
+  }
+
+  const counters = all
+    .filter((t) => t.target && !t.missable && !isEarned(state, t.id))
+    .map((t) => ({ t, pct: counterOf(state, t.id) / t.target.target }))
     .sort((a, b) => b.pct - a.pct)
-    .slice(0, 3);
+    .slice(0, 6);
   for (const { t, pct } of counters) {
-    add(t, `Counter at ${Math.round(pct * 100)}% — ${formatCount(t, counterOf(t.id))} of ${formatCount(t, t.target.target)} ${t.target.unit === '$' ? '' : t.target.unit}`.trim());
+    const n = counterOf(state, t.id);
+    const amount = t.target.unit === '$'
+      ? `$${fmt(n)} of $${fmt(t.target.target)}`
+      : `${fmt(n)} of ${fmt(t.target.target)} ${t.target.unit}`;
+    rows.push(row(t, `${amount} — ${Math.round(pct * 100)}% of the way there.`));
   }
 
-  if (picks.length === 0) {
-    add(trophy(2), 'Start here — the opening mission');
-    add(trophy(35), 'Start the vehicle counter from hour one');
-    add(trophy(42), 'Explore as you go — areas register automatically');
-  }
-
-  const earnedCount = allTrophies().filter((t) => isEarned(t.id)).length;
-  root.innerHTML = `
-    <div class="view-intro">
-      <h2>Next Up</h2>
-      <p>Your planner, in roadmap order — the missable first, the next story beat,
-      then whichever counters you are closest to finishing.
-      ${earnedCount} of ${allTrophies().length} trophies earned so far.</p>
-    </div>
-    <div class="next-list">${picks.join('')}</div>
-    <p class="next-note">Finished everything here? Open the Roadmap and work the
-    earliest stage that still has unearned trophies.</p>`;
-
-  root.querySelectorAll('[data-open]').forEach((b) =>
-    b.addEventListener('click', () => ctx.onOpen(Number(b.dataset.open))),
+  container.replaceChildren(
+    el('h2', {}, 'Next Up Planner'),
+    el('p', { class: 'lede' }, 'Your planner, in roadmap order — the missable first, the next story beat, then whichever counters you are closest to finishing.'),
+    ...(rows.length ? rows : [el('div', { class: 'empty' }, 'Everything is earned. Leonida is yours — the Platinum included.')]),
+    el('p', { class: 'closing-note' }, 'Finished everything here? Open the Roadmap and work the earliest stage that still has unearned trophies.'),
   );
 }

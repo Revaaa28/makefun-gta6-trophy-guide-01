@@ -1,24 +1,49 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Leonida Legend: an offline trophy guide and tracker for all 55 official GTA VI PS5 trophies — a checklist whose progress saves itself, a cited guide for every trophy, a roadmap to the Platinum, the one true missable, and a Next Up planner.">
-<meta name="theme-color" content="#0a0f1e">
+<meta name="description" content="Leonida Legend — a fan-made GTA VI trophy atlas. All 55 official PS5 trophies with cited guides, progress tracking, a platinum roadmap and the one true missable flagged.">
+<meta name="theme-color" content="#0b1322">
 <title>Leonida Legend — GTA VI Trophy Atlas</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
-<header id="site-header" class="site-header"></header>
-<nav id="view-nav" class="view-nav" aria-label="Views"></nav>
-<div class="layout">
-<main id="view-root" class="view-root"></main>
-<aside id="detail-pane" class="detail-pane" aria-label="Trophy guide"></aside>
+<div class="wrap">
+  <header class="masthead">
+    <div class="masthead-main">
+      <h1 class="wordmark">LEONIDA <span>LEGEND</span></h1>
+      <p class="subtitle">The GTA VI trophy atlas — all 55 official PS5 trophies, each with a cited guide in our own words.</p>
+    </div>
+    <div class="masthead-side">
+      <p class="progress-line" id="hdr-progress">0 of 55 trophies earned · 0%</p>
+      <div class="hdr-bar"><div class="hdr-fill" id="hdr-fill"></div></div>
+      <p class="tally">1 Platinum · 2 Gold · 6 Silver · 46 Bronze · about 200 hours to Platinum</p>
+    </div>
+  </header>
+
+  <div class="controls">
+    <label class="spoiler-toggle"><input type="checkbox" id="opt-spoilers"> Hide spoilers</label>
+    <span class="controls-spacer"></span>
+    <button type="button" class="btn" id="btn-export">Export progress</button>
+    <button type="button" class="btn" id="btn-import">Import progress</button>
+    <input type="file" id="file-import" accept="application/json,.json" hidden>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button type="button" class="tab active" data-view="checklist">Checklist &amp; Guides</button>
+    <button type="button" class="tab" data-view="roadmap">Roadmap</button>
+    <button type="button" class="tab" data-view="missables">Missables</button>
+    <button type="button" class="tab" data-view="planner">Next Up Planner</button>
+  </nav>
+
+  <main id="view" class="view"></main>
+
+  <footer class="foot">
+    <p>Leonida Legend is a fan-made guide. It is not affiliated with Rockstar Games or Take-Two Interactive. Trophy names and descriptions are the official PlayStation list for Grand Theft Auto VI; every guide here is written in our own words and cites its sources.</p>
+  </footer>
 </div>
-<footer class="site-footer">
-<p>Leonida Legend is a fan-made guide. Trophy names and descriptions are the official PlayStation list for Grand Theft Auto VI on PS5. Guides are written in our own words and cite their sources in every trophy's SOURCES box. Not affiliated with Rockstar Games.</p>
-</footer>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

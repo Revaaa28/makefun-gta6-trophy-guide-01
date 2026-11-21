@@ -1,39 +1,28 @@
-// Leonida Legend — hand-in program for the gta6-trophy-guide-01 entry.
-// The guide itself is the static site under app/ (plain HTML/CSS/ES modules,
-// no build step, nothing fetched over the network). This program copies app/
-// and screenshots/ into the output directory and writes dossier.json there
-// with make.fun's vendored library (vendor/makefun-frontend.ts, left exactly
-// as the kit ships it — the scorer compares the dossier byte for byte with
-// its own copy's output).
-// Run:  mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
-// (MAKEFUN_OUTPUT_DIR stands in for /output outside the grader's container.)
-// Preview the guide itself with:  node serve.ts   →   http://localhost:8080
+// Leonida Legend — hand-in program.
+//
+// Copies the static app (app/) and the screenshot set (screenshots/) into the
+// output directory, then asks the vendored make.fun frontend helper to weigh
+// and describe the bundle, and writes the result as dossier.json beside them.
+// Node standard library only, apart from the one vendored import.
 
-import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { cpSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-frontend.ts';
 
-const root = fileURLToPath(new URL('.', import.meta.url));
+const here = dirname(fileURLToPath(import.meta.url));
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
 mkdirSync(outDir, { recursive: true });
-cpSync(join(root, 'app'), join(outDir, 'app'), { recursive: true });
+cpSync(join(here, 'app'), join(outDir, 'app'), { recursive: true });
+cpSync(join(here, 'screenshots'), join(outDir, 'screenshots'), { recursive: true });
 
-mkdirSync(join(outDir, 'screenshots'), { recursive: true });
-const shotsDir = join(root, 'screenshots');
-if (existsSync(shotsDir)) {
-  cpSync(shotsDir, join(outDir, 'screenshots'), { recursive: true });
-}
-
-// Caps mirror the competition gate: at most 4 screenshots of 256 KiB each,
-// at most 993 app files / 48 MiB, dossier text capped at 160 KiB.
-const dossier = buildDossier(outDir, {
+const dossier = await buildDossier(outDir, {
   text_max_bytes: 163840,
   screenshots: { max: 4, max_bytes: 262144 },
   app_max_files: 993,
   app_max_bytes: 50331648,
 });
-writeFileSync(join(outDir, 'dossier.json'), dossier);
 
-console.log('Leonida Legend handed in: app/ + screenshots/ copied, dossier.json written to', outDir);
+writeFileSync(join(outDir, 'dossier.json'), dossier);
+console.log(`Leonida Legend hand-in written to ${outDir} (app/, screenshots/, dossier.json)`);

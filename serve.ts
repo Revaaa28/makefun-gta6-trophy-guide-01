@@ -1,21 +1,17 @@
-// Minimal static file server for previewing the guide locally.
-// Usage: node serve.ts [--port 8080]  →  http://localhost:8080
-// Serves only files inside app/, with the content types a browser needs for
-// HTML, CSS, ES modules and JSON. Development convenience only.
+// Leonida Legend — tiny static preview server.
+//
+// Serves only the files inside app/ on 127.0.0.1. Anything that tries to
+// escape that directory is refused, directories fall back to index.html,
+// and nothing is ever cached, so edits show up on a plain refresh.
 
-import { createReadStream, statSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { extname, join, normalize, resolve, sep } from 'node:path';
+import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const appRoot = resolve(fileURLToPath(new URL('./app', import.meta.url)));
+const root = join(dirname(fileURLToPath(import.meta.url)), 'app');
 
-const argv = process.argv.slice(2);
-const flagAt = argv.indexOf('--port');
-const wanted = flagAt === -1 ? 8080 : Number(argv[flagAt + 1]);
-const port = Number.isInteger(wanted) && wanted > 0 && wanted < 65536 ? wanted : 8080;
-
-const TYPES: Record<string, string> = {
+const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -30,37 +26,39 @@ const TYPES: Record<string, string> = {
   '.woff2': 'font/woff2',
 };
 
-const server = createServer((req, res) => {
-  let path: string;
+const portFlag = process.argv.indexOf('--port');
+const port = portFlag >= 0 ? Number(process.argv[portFlag + 1]) || 8080 : 8080;
+
+const server = createServer(async (req, res) => {
   try {
-    path = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    let rel = normalize(decodeURIComponent(url.pathname)).replace(/^[/\\]+/, '');
+    if (rel === '.' || rel === '') rel = 'index.html';
+    let file = join(root, rel);
+    if (file !== root && !file.startsWith(root + '/')) {
+      res.writeHead(403, { 'content-type': 'text/plain' });
+      res.end('Forbidden');
+      return;
+    }
+    const info = await stat(file).catch(() => null);
+    if (info?.isDirectory()) file = join(file, 'index.html');
+    const body = await readFile(file).catch(() => null);
+    if (body === null) {
+      res.writeHead(404, { 'content-type': 'text/plain' });
+      res.end('Not found');
+      return;
+    }
+    res.writeHead(200, {
+      'content-type': TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream',
+      'cache-control': 'no-store',
+    });
+    res.end(body);
   } catch {
-    res.writeHead(400).end('bad request');
-    return;
+    res.writeHead(500, { 'content-type': 'text/plain' });
+    res.end('Server error');
   }
-  if (path.endsWith('/')) path += 'index.html';
-  const file = resolve(join(appRoot, normalize(path)));
-  if (file !== appRoot && !file.startsWith(appRoot + sep)) {
-    res.writeHead(403).end('forbidden');
-    return;
-  }
-  let size: number;
-  try {
-    const st = statSync(file);
-    if (!st.isFile()) throw new Error('not a file');
-    size = st.size;
-  } catch {
-    res.writeHead(404).end('not found');
-    return;
-  }
-  res.writeHead(200, {
-    'content-type': TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream',
-    'content-length': size,
-    'cache-control': 'no-store',
-  });
-  createReadStream(file).pipe(res);
 });
 
 server.listen(port, '127.0.0.1', () => {
-  console.log(`Leonida Legend preview: http://localhost:${port}`);
+  console.log(`Leonida Legend preview at http://localhost:${port}`);
 });
