@@ -1,12 +1,3 @@
-// detail.js — the guide pane for one trophy.
-// Layout matters: name and description first, then — at the very top,
-// before a single word of advice — the SOURCES box naming where the
-// trophy's data and guide facts come from, and a status line saying whether
-// the guide is fully sourced or partly our own advice the game has not
-// confirmed yet. Then the guide itself, a counter stepper with an
-// "x of N" readout for counted trophies, the earned toggle, and the
-// player's private notes — stepper and notes both persist via the store.
-
 import { trophy, displayName, displayDescription, gradeLabel, kindLabel, stageName, formatCount, isCovered } from '../data.js';
 import { isEarned, setEarned, counterOf, setCounter, noteOf, setNote } from '../store.js';
 import { esc } from './checklist.js';
@@ -39,7 +30,6 @@ export function renderDetail(root, ctx) {
        </div>`
     : '';
 
-  // A covered trophy's pane head leaks nothing either: grade + Hidden only.
   const paneChips = covered
     ? `<span class="chip grade-${t.grade}">${gradeLabel(t)}</span>
        <span class="chip chip-hidden">Hidden</span>`

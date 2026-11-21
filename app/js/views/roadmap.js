@@ -1,7 +1,3 @@
-// roadmap.js — the road to the Platinum: the eight stages in play order,
-// each with its guidance, its trophies, and a progress bar that fills as
-// the player ticks trophies off. Clicking a trophy opens its guide.
-
 import { stages, trophy, displayName, gradeLabel } from '../data.js';
 import { isEarned } from '../store.js';
 import { esc } from './checklist.js';

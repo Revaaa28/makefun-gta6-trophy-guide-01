@@ -1,9 +1,3 @@
-// checklist.js — the tracker view: search, kind/grade/status filters and
-// the 55 trophy rows. Rows show official name and description, grade, kind,
-// hidden and roadmap-stage chips, and live counter progress where a trophy
-// counts toward a target. Unearned hidden trophies render fully covered:
-// no name, description, kind, stage or counter leaks through.
-
 import { KIND_FILTERS, GRADE_FILTERS, STATUS_FILTERS, matchesFilters } from '../filters.js';
 import { allTrophies, displayName, displayDescription, gradeLabel, kindLabel, stageName, formatCount, isCovered } from '../data.js';
 import { isEarned, counterOf } from '../store.js';
@@ -39,7 +33,6 @@ function counterBit(t) {
 export function renderChecklist(root, ctx) {
   const { state, filters } = ctx;
   const list = allTrophies().filter((t) => matchesFilters(t, filters, state));
-
   const kindBtns = KIND_FILTERS.map(
     (k) => `<button type="button" class="pill${filters.kind === k.id ? ' pill-on' : ''}" data-kind="${k.id}">${k.label}</button>`,
   ).join('');

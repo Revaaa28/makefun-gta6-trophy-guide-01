@@ -1,7 +1,3 @@
-// main.js — wires Leonida Legend together: header stats, the four views
-// (Checklist, Roadmap, Missables, Next Up), the guide pane, spoiler toggle,
-// export/import, and the keyboard shortcuts (/ searches, Esc closes).
-
 import { loadData, allTrophies } from './data.js';
 import { load, getState, subscribe, setEarned, setSpoilersHidden, exportProgress, importProgress } from './store.js';
 import { blankFilters } from './filters.js';
@@ -58,7 +54,6 @@ function renderHeader() {
         <input type="file" id="import-file" accept="application/json" hidden>
       </div>
     </div>`;
-
   headerEl.querySelector('#spoiler-toggle').addEventListener('change', (e) => setSpoilersHidden(e.target.checked));
   headerEl.querySelector('#export-btn').addEventListener('click', exportProgress);
   const fileInput = headerEl.querySelector('#import-file');

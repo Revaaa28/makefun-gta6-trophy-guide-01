@@ -1,10 +1,10 @@
 // Leonida Legend — hand-in program for the gta6-trophy-guide-01 entry.
-// The guide is the static site under app/ (plain HTML/CSS/ES modules, no
-// build step, nothing fetched over the network). This program copies app/
+// The guide itself is the static site under app/ (plain HTML/CSS/ES modules,
+// no build step, nothing fetched over the network). This program copies app/
 // and screenshots/ into the output directory and writes dossier.json there
-// with make.fun's vendored library (vendor/makefun-frontend.ts — left
-// exactly as the kit ships it; the scorer compares the dossier byte for
-// byte with its own copy's output).
+// with make.fun's vendored library (vendor/makefun-frontend.ts, left exactly
+// as the kit ships it — the scorer compares the dossier byte for byte with
+// its own copy's output).
 // Run:  mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 // (MAKEFUN_OUTPUT_DIR stands in for /output outside the grader's container.)
 // Preview the guide itself with:  node serve.ts   →   http://localhost:8080

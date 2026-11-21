@@ -1,8 +1,3 @@
-// filters.js — the checklist's filter state and matching rule.
-// Kinds are the guide's own taxonomy (story / missable / collectibles /
-// activities) plus an "online" bucket that intentionally matches nothing:
-// GTA VI has no online trophies at launch, and the view says so honestly.
-
 export const KIND_FILTERS = [
   { id: 'all', label: 'All kinds' },
   { id: 'story', label: 'Story' },
@@ -26,14 +21,12 @@ export const STATUS_FILTERS = [
   { id: 'remaining', label: 'Remaining only' },
 ];
 
-export function blankFilters() {
-  return { query: '', kind: 'all', grade: 'all', status: 'all' };
-}
+export function blankFilters() { return { query: '', kind: 'all', grade: 'all', status: 'all' }; }
 
 export function matchesKind(t, kind) {
   if (kind === 'all') return true;
   if (kind === 'missable') return t.missable === true;
-  if (kind === 'online') return false; // no online trophies at launch
+  if (kind === 'online') return false;
   return t.kind === kind;
 }
 

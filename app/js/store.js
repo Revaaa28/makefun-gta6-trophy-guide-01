@@ -1,11 +1,3 @@
-// store.js — progress persistence for Leonida Legend.
-// Everything the player records lives in one localStorage entry:
-//   { earned: {id: true}, counters: {id: number}, notes: {id: string},
-//     hideSpoilers: boolean }
-// Saved on every change, exportable to a JSON file, importable back on
-// another browser or machine. Nothing leaves the device unless the player
-// exports it themselves.
-
 const STORAGE_KEY = 'leonida-legend-v1';
 const blank = () => ({ earned: {}, counters: {}, notes: {}, hideSpoilers: false });
 
@@ -13,7 +5,7 @@ let state = blank();
 const listeners = new Set();
 
 function persist() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* full/blocked: session keeps working in memory */ }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* storage full or blocked: the session keeps working in memory */ }
 }
 function emit() { persist(); for (const fn of listeners) fn(state); }
 
@@ -30,20 +22,16 @@ export function load() {
 
 export function getState() { return state; }
 export function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
-
 export function isEarned(id) { return Boolean(state.earned[id]); }
 export function setEarned(id, on) { if (on) state.earned[id] = true; else delete state.earned[id]; emit(); }
-
 export function counterOf(id) { return state.counters[id] ?? 0; }
 export function setCounter(id, value) {
   const v = Math.max(0, Math.floor(Number(value) || 0));
   if (v === 0) delete state.counters[id]; else state.counters[id] = v;
   emit();
 }
-
 export function noteOf(id) { return state.notes[id] ?? ''; }
 export function setNote(id, text) { if (text) state.notes[id] = text; else delete state.notes[id]; emit(); }
-
 export function spoilersHidden() { return state.hideSpoilers; }
 export function setSpoilersHidden(on) { state.hideSpoilers = Boolean(on); emit(); }
 

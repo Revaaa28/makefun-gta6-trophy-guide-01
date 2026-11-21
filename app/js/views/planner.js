@@ -1,8 +1,3 @@
-// planner.js — "Next Up": given where the player actually is, what is the
-// most useful next trophy? Answers in roadmap order: the missable first if
-// it is still unearned, then the next story beat, then the counters closest
-// to done. Spoiler masking and the hidden-trophy cover apply here too.
-
 import { allTrophies, stages, trophy, displayName, gradeLabel, formatCount } from '../data.js';
 import { isEarned, counterOf } from '../store.js';
 import { esc } from './checklist.js';
@@ -26,10 +21,8 @@ export function renderPlanner(root, ctx) {
     }
   };
 
-  // 1. The missable outranks everything while it is unearned.
   add(trophy(28), 'Missable — do it in Chapter 1, before anything else');
 
-  // 2. Next story trophy in roadmap order.
   outer: for (const stage of stages()) {
     for (const id of stage.trophyIds) {
       const t = trophy(id);
@@ -40,7 +33,6 @@ export function renderPlanner(root, ctx) {
     }
   }
 
-  // 3. Counters nearest completion (by percentage), up to three.
   const counters = allTrophies()
     .filter((t) => t.target && !isEarned(t.id))
     .map((t) => ({ t, pct: counterOf(t.id) / t.target.target }))
@@ -51,7 +43,6 @@ export function renderPlanner(root, ctx) {
     add(t, `Counter at ${Math.round(pct * 100)}% — ${formatCount(t, counterOf(t.id))} of ${formatCount(t, t.target.target)} ${t.target.unit === '$' ? '' : t.target.unit}`.trim());
   }
 
-  // 4. If nothing has been started, point at the roadmap's first steps.
   if (picks.length === 0) {
     add(trophy(2), 'Start here — the opening mission');
     add(trophy(35), 'Start the vehicle counter from hour one');
