@@ -1,6 +1,8 @@
-// Loads the two data files and expands their compact layout into the plain
-// trophy objects the views work with. Also owns the hidden-cover rule, which
-// every view applies the same way.
+// Loads the two data files and normalizes them into the plain objects the
+// views work with. trophies.json uses the standard layout (full key names,
+// a "sources" legend at the top level); roadmap.json keeps its compact
+// layout and is expanded here. Also owns the hidden-cover rule, which every
+// view applies the same way.
 
 export const COVERED_DESC = 'A hidden trophy — covered until you earn it.';
 
@@ -8,20 +10,26 @@ let trophies = [];
 let byId = new Map();
 let roadmap = null;
 
-function expandTrophy(raw, srcMap) {
+function normalizeTrophy(raw, srcMap) {
   return {
-    id: raw.i,
-    name: raw.n,
-    description: raw.d,
-    grade: raw.g,
-    kind: raw.k,
-    stage: raw.s,
-    hidden: raw.h === 1,
-    missable: raw.m === 1,
-    target: raw.t ? { target: raw.t[0], unit: raw.t[1] } : null,
+    id: raw.id,
+    name: raw.name,
+    description: raw.description,
+    grade: raw.grade,
+    kind: raw.kind,
+    stage: raw.stage,
+    hidden: raw.hidden === true,
+    missable: raw.missable === true,
+    target: raw.target ? { target: raw.target.target, unit: raw.target.unit } : null,
     sources: (raw.src || []).map((code) => srcMap[code] || code),
-    guide: raw.gd || '',
+    guide: raw.guide || '',
   };
+}
+
+// roadmap.json stays compact on disk (i/n/t/g), so expand each stage into
+// the plain shape the roadmap view consumes — the mirror of normalizeTrophy.
+function expandStage(raw) {
+  return { id: raw.i, name: raw.n, trophyIds: raw.t, guidance: raw.g };
 }
 
 export async function loadData() {
@@ -30,12 +38,12 @@ export async function loadData() {
     fetch(new URL('trophies.json', base)).then((r) => r.json()),
     fetch(new URL('roadmap.json', base)).then((r) => r.json()),
   ]);
-  trophies = tr.trophies.map((t) => expandTrophy(t, tr.src || {}));
+  trophies = tr.trophies.map((t) => normalizeTrophy(t, tr.sources || {}));
   byId = new Map(trophies.map((t) => [t.id, t]));
   roadmap = {
     title: rm.title,
     note: rm.note,
-    stages: rm.stages.map((s) => ({ id: s.i, name: s.n, trophyIds: s.t, guidance: s.g })),
+    stages: rm.stages.map(expandStage),
   };
   return { trophies, roadmap };
 }
