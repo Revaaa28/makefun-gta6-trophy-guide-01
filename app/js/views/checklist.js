@@ -1,100 +1,67 @@
-// The checklist: filter row on top, trophy rows on the left, the guide pane
-// stuck to the right. Rows carry the tracker (checkbox, counter readout);
-// the pane carries the reading (sources, guide, stepper, notes).
+// The checklist: every trophy as a row. Hidden trophies you have not earned
+// are fully covered — name, description and chips all withheld — whatever
+// the spoiler toggle says.
+import { displayDesc, displayName, isCovered } from '../data.js';
 
-import { allTrophies, displayDesc, displayName, isCovered, trophyById } from '../data.js';
-import { GRADE_OPTIONS, KIND_CHIPS, STATUS_OPTIONS, matches } from '../filters.js';
-import { counterOf, isEarned, toggleEarned } from '../store.js';
-import { chipsFor, fmt, renderDetail } from './detail.js';
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
 
-export function renderChecklist(container, ctx, selectedId) {
-  const { el, state, filters } = ctx;
-  let selected = selectedId ?? 39;
+function chip(text, cls) {
+  return el('span', `chip ${cls || ''}`.trim(), text);
+}
 
-  const bar = el('div', { class: 'filters' });
-  const listBox = el('div', {});
-  const pane = el('aside', { class: 'pane' });
-  const showing = el('span', { class: 'showing' });
+export function renderChecklist(listEl, showingEl, ctx, visible) {
+  const { state } = ctx;
+  showingEl.textContent =
+    visible.length === 0 && ctx.filters.kind === 'online'
+      ? 'No online trophies at launch — GTA VI ships as a single-player list, so this filter is honestly empty.'
+      : `Showing ${visible.length} of ${ctx.trophies.length} trophies`;
+  listEl.replaceChildren(
+    ...visible.map((t) => {
+      const covered = isCovered(t, state);
+      const earned = state.earned.includes(t.id);
+      const row = el('li', `trophy-row${earned ? ' is-earned' : ''}${ctx.selectedId === t.id ? ' is-selected' : ''}`);
+      row.dataset.id = String(t.id);
 
-  function refresh() {
-    renderList();
-    renderDetail(pane, ctx, trophyById(selected), refresh);
-  }
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = earned;
+      box.setAttribute('aria-label', `Mark ${t.name} as earned`);
+      box.addEventListener('click', (e) => e.stopPropagation());
+      box.addEventListener('change', () => ctx.onToggleEarned(t.id));
+      row.append(box);
 
-  function renderList() {
-    const all = allTrophies();
-    const visible = all.filter((t) => matches(t, filters, state));
-    showing.textContent = `Showing ${visible.length} of ${all.length}`;
-    if (filters.kind === 'online') {
-      listBox.replaceChildren(el('div', { class: 'empty' },
-        'No online trophies at launch — every trophy on the official list is earned offline, so this filter has nothing to show.'));
-      return;
-    }
-    if (!visible.length) {
-      listBox.replaceChildren(el('div', { class: 'empty' }, 'No trophies match those filters. Loosen one and the list comes back.'));
-      return;
-    }
-    listBox.replaceChildren(...visible.map(rowFor));
-  }
+      const main = el('div', 'row-main');
+      const title = el('div', 'row-title');
+      title.append(chip(t.grade, `grade-${t.grade}`), el('span', '', displayName(t, state)));
+      main.append(title, el('div', 'row-desc', displayDesc(t, state)));
 
-  function rowFor(t) {
-    const earned = isEarned(state, t.id);
-    const covered = isCovered(t, state);
-    const box = el('input', { type: 'checkbox', 'aria-label': `Mark ${displayName(t, state)} as earned` });
-    box.checked = earned;
-    box.addEventListener('change', () => { toggleEarned(state, t.id); ctx.changed(); refresh(); });
-
-    const meta = el('div', { class: 'tmeta' }, chipsFor(ctx, t, state));
-    if (t.target && !covered) {
-      meta.append(el('span', { class: 'tcount' }, `${fmt(counterOf(state, t.id))} / ${fmt(t.target.target)} ${t.target.unit}`));
-    }
-    const row = el('div', {
-      class: 'trow' + (earned ? ' done' : '') + (t.id === selected ? ' sel' : ''),
-      'data-tid': String(t.id),
-    },
-      box,
-      el('div', { class: 'tmain' },
-        el('div', { class: 'tname' }, displayName(t, state)),
-        el('div', { class: 'tdesc' }, displayDesc(t, state)),
-        meta),
-    );
-    row.addEventListener('click', (ev) => {
-      if (ev.target === box) return;
-      selected = t.id;
-      refresh();
-    });
-    return row;
-  }
-
-  // Filter row: SHOW label, kind chips, search, grade + status selects.
-  bar.append(el('span', { class: 'show-label' }, 'SHOW'));
-  for (const [value, label] of KIND_CHIPS) {
-    const b = el('button', {
-      type: 'button',
-      class: 'fchip' + (filters.kind === value ? ' on' : ''),
-      onclick: () => {
-        filters.kind = value;
-        bar.querySelectorAll('.fchip').forEach((c) => c.classList.toggle('on', c === b));
-        renderList();
-      },
-    }, label);
-    bar.append(b);
-  }
-  const search = el('input', { type: 'search', placeholder: 'Search trophies and descriptions', 'aria-label': 'Search trophies' });
-  search.value = filters.query;
-  search.addEventListener('input', () => { filters.query = search.value; renderList(); });
-
-  const gradeSel = el('select', { 'aria-label': 'Filter by grade' },
-    GRADE_OPTIONS.map(([v, l]) => el('option', { value: v }, l)));
-  gradeSel.value = filters.grade;
-  gradeSel.addEventListener('change', () => { filters.grade = gradeSel.value; renderList(); });
-
-  const statusSel = el('select', { 'aria-label': 'Filter by status' },
-    STATUS_OPTIONS.map(([v, l]) => el('option', { value: v }, l)));
-  statusSel.value = filters.status;
-  statusSel.addEventListener('change', () => { filters.status = statusSel.value; renderList(); });
-
-  bar.append(search, gradeSel, statusSel, showing);
-  container.replaceChildren(bar, el('div', { class: 'cols' }, listBox, pane));
-  refresh();
+      const chips = el('div', 'row-chips');
+      if (covered) {
+        chips.append(chip('Hidden', 'chip-hidden'));
+      } else {
+        chips.append(chip(t.kind), chip(`Stage ${t.stage}`));
+        if (t.hidden) chips.append(chip('Hidden', 'chip-hidden'));
+        if (t.missable) chips.append(chip('Missable', 'chip-missable'));
+      }
+      main.append(chips);
+      row.append(main);
+      row.addEventListener('click', () => ctx.onSelect(t.id));
+      // Keyboard parity with the mouse: rows are focusable and Enter/Space
+      // selects. Keys aimed at the checkbox inside the row are left to it.
+      row.tabIndex = 0;
+      row.addEventListener('keydown', (e) => {
+        if (e.target !== row) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          ctx.onSelect(t.id);
+        }
+      });
+      return row;
+    }),
+  );
 }

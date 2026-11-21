@@ -1,101 +1,78 @@
-// The guide pane: one trophy in full. The SOURCES box always comes first —
-// a reader should see where the facts come from before the advice built on
-// them. Covered (hidden, unearned) trophies show none of it.
-
+// The detail pane. The SOURCES box comes first on purpose: a guide step is
+// only worth anything next to the source that backs it, so the sources sit
+// above the guide, never below the fold.
 import { COVERED_DESC, displayDesc, displayName, isCovered } from '../data.js';
-import { counterOf, isEarned, setCounter, setNote, toggleEarned } from '../store.js';
 
-export const GRADE_LABEL = { platinum: 'Platinum', gold: 'Gold', silver: 'Silver', bronze: 'Bronze' };
-export const KIND_LABEL = { story: 'Story', collectibles: 'Collectibles', activities: 'Activities' };
-
-export const fmt = (n) => n.toLocaleString('en-US');
-
-export function progressText(t, state) {
-  const n = counterOf(state, t.id);
-  if (t.target.unit === '$') return `$${fmt(n)} of $${fmt(t.target.target)}`;
-  return `${fmt(n)} of ${fmt(t.target.target)} ${t.target.unit}`;
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
 }
 
-function chip(ctx, text, cls) {
-  return ctx.el('span', { class: `chip ${cls || ''}` }, text);
-}
-
-// The chip row for a trophy. A covered trophy gets only its grade chip and
-// the Hidden chip — kind, stage and missable would give the trophy away.
-export function chipsFor(ctx, t, state, { withStatus = false } = {}) {
-  const chips = [chip(ctx, GRADE_LABEL[t.grade], `g-${t.grade}`)];
-  if (isCovered(t, state)) {
-    chips.push(chip(ctx, 'Hidden', 'k-hidden'));
-    return chips;
-  }
-  if (withStatus) {
-    chips.push(isEarned(state, t.id)
-      ? chip(ctx, 'Earned', 'status-earned')
-      : chip(ctx, 'Not earned', ''));
-  }
-  chips.push(chip(ctx, KIND_LABEL[t.kind], ''));
-  chips.push(chip(ctx, `Stage ${t.stage}`, ''));
-  if (t.hidden) chips.push(chip(ctx, 'Hidden', 'k-hidden'));
-  if (t.missable) chips.push(chip(ctx, 'Missable', 'k-missable'));
-  return chips;
-}
-
-export function renderDetail(pane, ctx, t, refresh) {
-  const { el, state } = ctx;
-  pane.replaceChildren();
+export function renderDetail(pane, ctx) {
+  const { state } = ctx;
+  const t = ctx.trophy;
   if (!t) {
-    pane.append(el('p', { class: 'placeholder' }, 'Select a trophy from the list to read its guide.'));
+    pane.replaceChildren(el('p', 'empty-state', 'Pick a trophy to see its cited guide.'));
     return;
   }
+  const covered = isCovered(t, state);
+  const earned = state.earned.includes(t.id);
+  const frag = document.createDocumentFragment();
 
-  const earned = isEarned(state, t.id);
-  const toggleBtn = el('button', {
-    class: 'btn' + (earned ? '' : ' primary'),
-    type: 'button',
-    onclick: () => { toggleEarned(state, t.id); ctx.changed(); refresh(); },
-  }, earned ? 'Mark as not earned' : 'Mark as earned');
+  const sources = el('div', 'sources-box');
+  sources.append(el('h3', '', 'SOURCES'));
+  const ul = document.createElement('ul');
+  for (const s of t.sources) ul.append(el('li', '', s));
+  sources.append(ul);
+  frag.append(sources);
 
-  if (isCovered(t, state)) {
-    pane.append(
-      el('div', { class: 'pmeta' }, chipsFor(ctx, t, state)),
-      el('h3', {}, 'Hidden trophy'),
-      el('p', { class: 'pdesc' }, COVERED_DESC),
-      el('p', { class: 'guide' }, 'This trophy is hidden on the official list, so its name, description and guide stay covered here until you earn it in the game.'),
-      toggleBtn,
-    );
-    return;
+  const title = el('div', 'row-title');
+  const grade = el('span', `chip grade-${t.grade}`, t.grade);
+  title.append(grade);
+  frag.append(title);
+  frag.append(el('h2', '', displayName(t, state)));
+  frag.append(el('p', 'detail-desc', displayDesc(t, state)));
+
+  if (covered) {
+    frag.append(el('p', 'guide-text', COVERED_DESC));
+  } else {
+    frag.append(el('p', 'guide-text', t.guide));
   }
 
-  const head = el('div', { class: 'pmeta' }, chipsFor(ctx, t, state, { withStatus: true }));
-  const sources = el('div', { class: 'sources' },
-    el('h4', {}, 'SOURCES'),
-    el('ul', {}, t.sources.map((s) => el('li', {}, s))),
-    el('p', { class: 'closing' }, 'Guide written from the sources above, in our own words.'),
-  );
-
-  pane.append(head, el('h3', {}, displayName(t, state)), el('p', { class: 'pdesc' }, displayDesc(t, state)), sources, el('p', { class: 'guide' }, t.guide));
-
-  if (t.target) {
-    const label = el('span', { class: 'plabel', 'aria-live': 'polite' }, `Progress: ${progressText(t, state)}`);
-    const step = (delta) => () => {
-      setCounter(state, t.id, counterOf(state, t.id) + delta, t.target);
-      ctx.save();
-      refresh();
-    };
-    pane.append(el('div', { class: 'prow' },
-      label,
-      el('button', { class: 'stepbtn', type: 'button', 'aria-label': 'Decrease counter', onclick: step(-1) }, '−'),
-      el('button', { class: 'stepbtn', type: 'button', 'aria-label': 'Increase counter', onclick: step(1) }, '+'),
-      el('button', { class: 'stepbtn wide', type: 'button', 'aria-label': 'Increase counter by ten', onclick: step(10) }, '+10'),
-    ));
+  if (t.target && !covered) {
+    const n = state.counters[t.id] || 0;
+    const stepper = el('div', 'stepper');
+    const minus = el('button', '', '−');
+    minus.type = 'button';
+    minus.addEventListener('click', () => ctx.onCounter(t.id, n - 1));
+    const readout = el('span', 'count', `${n.toLocaleString('en-US')} of ${t.target.target.toLocaleString('en-US')} ${t.target.unit}`);
+    readout.setAttribute('aria-live', 'polite');
+    const plus = el('button', '', '+');
+    plus.type = 'button';
+    plus.addEventListener('click', () => ctx.onCounter(t.id, n + 1));
+    const plus10 = el('button', '', '+10');
+    plus10.type = 'button';
+    plus10.addEventListener('click', () => ctx.onCounter(t.id, n + 10));
+    stepper.append(minus, readout, plus, plus10);
+    frag.append(stepper);
   }
 
-  const notes = el('textarea', {
-    placeholder: 'Your own notes for this trophy…',
-    'aria-label': `Your notes for ${t.name}`,
-  });
+  const label = el('label', 'notes-label', 'Your notes');
+  const notes = document.createElement('textarea');
+  notes.className = 'notes';
   notes.value = state.notes[t.id] || '';
-  notes.addEventListener('input', () => { setNote(state, t.id, notes.value); ctx.save(); });
+  notes.placeholder = 'Your own route notes for this trophy…';
+  notes.setAttribute('aria-label', `Notes for ${t.name}`);
+  notes.addEventListener('change', () => ctx.onNote(t.id, notes.value.trim()));
+  label.append(notes);
+  frag.append(label);
 
-  pane.append(toggleBtn, el('label', { class: 'notes-label' }, 'Your notes'), notes);
+  const toggle = el('button', `earn-toggle${earned ? ' is-earned' : ''}`, earned ? 'Earned — tap to undo' : 'Mark as earned');
+  toggle.type = 'button';
+  toggle.addEventListener('click', () => ctx.onToggleEarned(t.id));
+  frag.append(toggle);
+
+  pane.replaceChildren(frag);
 }

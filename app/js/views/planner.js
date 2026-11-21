@@ -1,59 +1,32 @@
-// Next Up: a queue computed from the player's own progress. The missable
-// leads while it is unearned, the next story beat follows, and then the
-// counters closest to done — the shortest wins first.
+// Next Up: the next unearned trophies in roadmap order, so the player
+// always knows what the game is about to offer them.
+import { displayDesc, displayName } from '../data.js';
 
-import { allTrophies, displayName, isCovered } from '../data.js';
-import { counterOf, isEarned } from '../store.js';
-import { fmt } from './detail.js';
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
 
-export function renderPlanner(container, ctx) {
-  const { el, state } = ctx;
-  const all = allTrophies();
-  const rows = [];
-
-  const row = (t, hint) => el('button', {
-    type: 'button',
-    class: 'prow-item',
-    onclick: () => ctx.go('checklist', t.id),
-  },
-    el('span', { class: 'pname' }, displayName(t, state)),
-    el('span', { class: 'phint' }, hint),
-  );
-
-  const missable = all.find((t) => t.missable);
-  if (missable && !isEarned(state, missable.id)) {
-    const n = counterOf(state, missable.id);
-    rows.push(row(missable, n > 0
-      ? `${n} of ${missable.target.target} spots meditated — and the Chapter 1 balcony spot cannot be recovered once the chapter ends.`
-      : 'Chapter 1 only: the balcony meditation spot vanishes for good when the chapter ends.'));
+export function renderPlanner(section, ctx) {
+  const { state, roadmap } = ctx;
+  const frag = document.createDocumentFragment();
+  frag.append(el('h2', '', 'Next Up'));
+  const stageName = new Map(roadmap.stages.map((s) => [s.id, s.name]));
+  const ordered = [...ctx.trophies].sort((a, b) => a.stage - b.stage || a.id - b.id);
+  const next = ordered.filter((t) => !state.earned.includes(t.id)).slice(0, 8);
+  if (next.length === 0) {
+    frag.append(el('p', 'empty-state', 'Everything is earned — Leonida Legend status. Time to touch grass.'));
   }
-
-  const nextStory = all
-    .filter((t) => t.kind === 'story' && !isEarned(state, t.id))
-    .sort((a, b) => a.stage - b.stage || a.id - b.id)[0];
-  if (nextStory) {
-    rows.push(row(nextStory, isCovered(nextStory, state)
-      ? `Next story beat — a hidden trophy in stage ${nextStory.stage}. It uncovers when you earn it.`
-      : `Next story beat — stage ${nextStory.stage} of the roadmap.`));
+  for (const t of next) {
+    const card = el('article', 'planner-card');
+    const title = el('div', 'row-title');
+    title.append(el('span', `chip grade-${t.grade}`, t.grade), el('span', '', displayName(t, state)));
+    card.append(title);
+    card.append(el('p', 'stage-guidance', `Stage ${t.stage} — ${stageName.get(t.stage) || ''}`));
+    card.append(el('p', '', displayDesc(t, state)));
+    frag.append(card);
   }
-
-  const counters = all
-    .filter((t) => t.target && !t.missable && !isEarned(state, t.id))
-    .map((t) => ({ t, pct: counterOf(state, t.id) / t.target.target }))
-    .sort((a, b) => b.pct - a.pct)
-    .slice(0, 6);
-  for (const { t, pct } of counters) {
-    const n = counterOf(state, t.id);
-    const amount = t.target.unit === '$'
-      ? `$${fmt(n)} of $${fmt(t.target.target)}`
-      : `${fmt(n)} of ${fmt(t.target.target)} ${t.target.unit}`;
-    rows.push(row(t, `${amount} — ${Math.round(pct * 100)}% of the way there.`));
-  }
-
-  container.replaceChildren(
-    el('h2', {}, 'Next Up Planner'),
-    el('p', { class: 'lede' }, 'Your planner, in roadmap order — the missable first, the next story beat, then whichever counters you are closest to finishing.'),
-    ...(rows.length ? rows : [el('div', { class: 'empty' }, 'Everything is earned. Leonida is yours — the Platinum included.')]),
-    el('p', { class: 'closing-note' }, 'Finished everything here? Open the Roadmap and work the earliest stage that still has unearned trophies.'),
-  );
+  section.replaceChildren(frag);
 }

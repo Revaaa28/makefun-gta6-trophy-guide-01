@@ -1,37 +1,35 @@
-// The roadmap: the eight stages in play order, each a card with its
-// guidance, a progress bar fed by the player's tracker, and a chip per
-// trophy that jumps straight to that trophy's guide in the checklist.
+// The roadmap: eight stages in play order, each with its time guidance and
+// a progress bar tied to the checklist.
+import { displayName } from '../data.js';
 
-import { displayName, getRoadmap, trophyById } from '../data.js';
-import { isEarned } from '../store.js';
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
 
-export function renderRoadmap(container, ctx) {
-  const { el, state } = ctx;
-  const roadmap = getRoadmap();
-
-  const cards = roadmap.stages.map((stage) => {
-    const done = stage.trophyIds.filter((id) => isEarned(state, id)).length;
-    const pct = stage.trophyIds.length ? Math.round((done / stage.trophyIds.length) * 100) : 0;
-    const chips = stage.trophyIds.map((id) => {
-      const t = trophyById(id);
-      return el('button', {
-        type: 'button',
-        class: 'tchip' + (isEarned(state, id) ? ' done' : ''),
-        onclick: () => ctx.go('checklist', id),
-      }, displayName(t, state));
-    });
-    return el('section', { class: 'stage-card' },
-      el('h3', {}, el('span', { class: 'stage-no' }, `STAGE ${stage.id}`), stage.name),
-      el('p', { class: 'sguide' }, stage.guidance),
-      el('div', { class: 'sbar-row' },
-        el('div', { class: 'sbar' }, el('div', { class: 'sfill', style: `width:${pct}%` })),
-        el('span', { class: 'scount' }, `${done} of ${stage.trophyIds.length} earned`)),
-      el('div', { class: 'tchips' }, chips));
-  });
-
-  container.replaceChildren(
-    el('h2', {}, roadmap.title),
-    el('p', { class: 'lede' }, roadmap.note),
-    ...cards,
-  );
+export function renderRoadmap(section, ctx) {
+  const { state, roadmap } = ctx;
+  const frag = document.createDocumentFragment();
+  frag.append(el('h2', '', roadmap.title));
+  frag.append(el('p', 'roadmap-note', roadmap.note));
+  for (const stage of roadmap.stages) {
+    const card = el('article', 'stage-card');
+    card.append(el('h3', '', `Stage ${stage.id} — ${stage.name}`));
+    const done = stage.trophyIds.filter((id) => state.earned.includes(id)).length;
+    card.append(el('p', 'stage-guidance', `${done} of ${stage.trophyIds.length} earned`));
+    const bar = el('div', 'stage-progress');
+    const fill = document.createElement('div');
+    fill.style.width = `${stage.trophyIds.length ? (done / stage.trophyIds.length) * 100 : 0}%`;
+    bar.append(fill);
+    card.append(bar);
+    card.append(el('p', 'stage-guidance', stage.guidance));
+    const names = stage.trophyIds
+      .map((id) => displayName(ctx.byId.get(id), state))
+      .join(' · ');
+    card.append(el('p', 'stage-trophies', names));
+    frag.append(card);
+  }
+  section.replaceChildren(frag);
 }

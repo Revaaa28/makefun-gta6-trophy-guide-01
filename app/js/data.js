@@ -1,16 +1,16 @@
-// Loads the two data files and normalizes them into the plain objects the
-// views work with. trophies.json uses the standard layout (full key names,
-// a "sources" legend at the top level); roadmap.json keeps its compact
-// layout and is expanded here. Also owns the hidden-cover rule, which every
-// view applies the same way.
+// Loads the two data files. trophies.json uses the standard schema — its
+// "src" codes are resolved to full source names through the file's own
+// top-level "sources" legend. roadmap.json stays compact on disk
+// ({i, n, t, g} per stage) and is expanded here into plain objects.
 
 export const COVERED_DESC = 'A hidden trophy — covered until you earn it.';
+export const SPOILER_DESC = 'Description hidden while Hide spoilers is on.';
 
 let trophies = [];
 let byId = new Map();
 let roadmap = null;
 
-function normalizeTrophy(raw, srcMap) {
+function expandTrophy(raw, legend) {
   return {
     id: raw.id,
     name: raw.name,
@@ -21,13 +21,11 @@ function normalizeTrophy(raw, srcMap) {
     hidden: raw.hidden === true,
     missable: raw.missable === true,
     target: raw.target ? { target: raw.target.target, unit: raw.target.unit } : null,
-    sources: (raw.src || []).map((code) => srcMap[code] || code),
+    sources: (raw.src || []).map((code) => legend[code] || code),
     guide: raw.guide || '',
   };
 }
 
-// roadmap.json stays compact on disk (i/n/t/g), so expand each stage into
-// the plain shape the roadmap view consumes — the mirror of normalizeTrophy.
 function expandStage(raw) {
   return { id: raw.i, name: raw.n, trophyIds: raw.t, guidance: raw.g };
 }
@@ -38,13 +36,10 @@ export async function loadData() {
     fetch(new URL('trophies.json', base)).then((r) => r.json()),
     fetch(new URL('roadmap.json', base)).then((r) => r.json()),
   ]);
-  trophies = tr.trophies.map((t) => normalizeTrophy(t, tr.sources || {}));
+  const legend = tr.sources || {};
+  trophies = tr.trophies.map((t) => expandTrophy(t, legend));
   byId = new Map(trophies.map((t) => [t.id, t]));
-  roadmap = {
-    title: rm.title,
-    note: rm.note,
-    stages: rm.stages.map(expandStage),
-  };
+  roadmap = { title: rm.title, note: rm.note, stages: rm.stages.map(expandStage) };
   return { trophies, roadmap };
 }
 
@@ -56,7 +51,6 @@ export const isCovered = (t, state) => t.hidden && !state.earned.includes(t.id);
 export const displayName = (t, state) => (isCovered(t, state) ? 'Hidden trophy' : t.name);
 export const spoilerMasked = (t, state) =>
   state.hideSpoilers && t.kind === 'story' && !state.earned.includes(t.id) && !isCovered(t, state);
-export const SPOILER_DESC = 'Description hidden while Hide spoilers is on.';
 export const displayDesc = (t, state) => {
   if (isCovered(t, state)) return COVERED_DESC;
   if (spoilerMasked(t, state)) return SPOILER_DESC;

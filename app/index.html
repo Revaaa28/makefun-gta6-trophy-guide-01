@@ -1,49 +1,80 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Leonida Legend — a fan-made GTA VI trophy atlas. All 55 official PS5 trophies with cited guides, progress tracking, a platinum roadmap and the one true missable flagged.">
+<meta name="description" content="Leonida Legend — a fan-made, fully offline GTA VI trophy tracker with cited guides for all 55 trophies.">
 <meta name="theme-color" content="#0b1322">
 <title>Leonida Legend — GTA VI Trophy Atlas</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
-<div class="wrap">
-  <header class="masthead">
-    <div class="masthead-main">
-      <h1 class="wordmark">LEONIDA <span>LEGEND</span></h1>
-      <p class="subtitle">The GTA VI trophy atlas — all 55 official PS5 trophies, each with a cited guide in our own words.</p>
-    </div>
-    <div class="masthead-side">
-      <p class="progress-line" id="hdr-progress">0 of 55 trophies earned · 0%</p>
-      <div class="hdr-bar"><div class="hdr-fill" id="hdr-fill"></div></div>
-      <p class="tally">1 Platinum · 2 Gold · 6 Silver · 46 Bronze · about 200 hours to Platinum</p>
-    </div>
-  </header>
-
-  <div class="controls">
-    <label class="spoiler-toggle"><input type="checkbox" id="opt-spoilers"> Hide spoilers</label>
-    <span class="controls-spacer"></span>
-    <button type="button" class="btn" id="btn-export">Export progress</button>
-    <button type="button" class="btn" id="btn-import">Import progress</button>
-    <input type="file" id="file-import" accept="application/json,.json" hidden>
+<header class="site-header">
+  <div class="wordmark">LEONIDA <span>LEGEND</span></div>
+  <p class="subtitle">GTA VI Trophy Atlas — all 55 trophies, every guide cited to its source.</p>
+  <div class="progress-line">
+    <strong id="progress-count">0 of 55</strong>
+    <span id="progress-tallies" class="tallies"></span>
   </div>
+  <div class="header-actions">
+    <button id="export-btn" type="button">Export progress</button>
+    <button id="import-btn" type="button">Import progress</button>
+    <input id="import-file" type="file" accept="application/json" hidden>
+  </div>
+</header>
 
-  <nav class="tabs" id="tabs">
-    <button type="button" class="tab active" data-view="checklist">Checklist &amp; Guides</button>
-    <button type="button" class="tab" data-view="roadmap">Roadmap</button>
-    <button type="button" class="tab" data-view="missables">Missables</button>
-    <button type="button" class="tab" data-view="planner">Next Up Planner</button>
-  </nav>
+<nav class="tabs" aria-label="Views">
+  <button type="button" class="tab is-active" data-view="checklist">Checklist</button>
+  <button type="button" class="tab" data-view="roadmap">Roadmap</button>
+  <button type="button" class="tab" data-view="missables">Missables</button>
+  <button type="button" class="tab" data-view="planner">Next Up</button>
+</nav>
 
-  <main id="view" class="view"></main>
+<section id="view-checklist" class="view">
+  <div class="controls">
+    <input id="search" type="search" placeholder="Search names and descriptions…" aria-label="Search trophies">
+    <select id="filter-kind" aria-label="Filter by kind">
+      <option value="all">All kinds</option>
+      <option value="story">Story</option>
+      <option value="missable">Missable</option>
+      <option value="collectibles">Collectibles</option>
+      <option value="activities">Activities</option>
+      <option value="online">Online</option>
+    </select>
+    <select id="filter-grade" aria-label="Filter by grade">
+      <option value="all">All grades</option>
+      <option value="platinum">Platinum</option>
+      <option value="gold">Gold</option>
+      <option value="silver">Silver</option>
+      <option value="bronze">Bronze</option>
+    </select>
+    <select id="filter-status" aria-label="Filter by status">
+      <option value="all">All statuses</option>
+      <option value="earned">Earned</option>
+      <option value="unearned">Not yet earned</option>
+    </select>
+    <label class="spoiler-toggle">
+      <input id="hide-spoilers" type="checkbox"> Hide spoilers
+    </label>
+  </div>
+  <div class="layout">
+    <div class="list-wrap">
+      <p id="showing" class="showing"></p>
+      <ul id="trophy-list" class="trophy-list"></ul>
+    </div>
+    <aside id="detail-pane" class="detail-pane" aria-live="polite"></aside>
+  </div>
+</section>
 
-  <footer class="foot">
-    <p>Leonida Legend is a fan-made guide. It is not affiliated with Rockstar Games or Take-Two Interactive. Trophy names and descriptions are the official PlayStation list for Grand Theft Auto VI; every guide here is written in our own words and cites its sources.</p>
-  </footer>
-</div>
+<section id="view-roadmap" class="view" hidden></section>
+<section id="view-missables" class="view" hidden></section>
+<section id="view-planner" class="view" hidden></section>
+
+<footer class="site-footer">
+  <p>Fan-made tracker, built for players. Not affiliated with Rockstar Games or Take-Two Interactive; no official artwork is used. Trophy data and guide facts are credited to the sources named on every trophy.</p>
+</footer>
+
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

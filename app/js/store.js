@@ -1,79 +1,126 @@
-// Player progress, kept in localStorage under one key. The state shape is
-// { earned: number[], counters: {id: number}, notes: {id: string},
-//   hideSpoilers: boolean } — counters and notes are keyed by trophy id.
+// Owns the player's progress: earned ids, per-trophy counters and notes,
+// and the spoiler toggle. Persisted to localStorage under one key, with
+// export/import as a JSON file. A ?demo URL seeds a fixed mid-run state so
+// screenshots always show the same believable progress.
 
 const KEY = 'leonida-legend-v1';
 
+export const DEMO_SEED = {
+  earned: [2, 3, 8, 16, 21, 33, 36, 39, 44, 46, 51, 53, 55],
+  counters: { 15: 137, 17: 20, 25: 3, 28: 6, 31: 46, 32: 23, 35: 58, 42: 31, 52: 90000 },
+  notes: { 15: 'Stunt jumps around the airport are quick — chain them between missions.' },
+  hideSpoilers: false,
+};
+
 const blank = () => ({ earned: [], counters: {}, notes: {}, hideSpoilers: false });
 
-export function loadState() {
+function isValidState(s) {
+  return (
+    s !== null &&
+    typeof s === 'object' &&
+    Array.isArray(s.earned) &&
+    s.earned.every((n) => Number.isInteger(n)) &&
+    s.counters !== null && typeof s.counters === 'object' && !Array.isArray(s.counters) &&
+    s.notes !== null && typeof s.notes === 'object' && !Array.isArray(s.notes) &&
+    typeof s.hideSpoilers === 'boolean'
+  );
+}
+
+let state = blank();
+const listeners = new Set();
+
+export function getState() {
+  return state;
+}
+
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch {
+    /* storage unavailable — the app still works for the session */
+  }
+}
+
+function emit() {
+  save();
+  for (const fn of listeners) fn(state);
+}
+
+export function subscribe(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+export function initStore() {
+  if (new URLSearchParams(location.search).has('demo')) {
+    state = JSON.parse(JSON.stringify(DEMO_SEED));
+    save();
+    return state;
+  }
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return blank();
-    return sanitize(JSON.parse(raw));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (isValidState(parsed)) state = parsed;
+    }
   } catch {
-    return blank();
+    state = blank();
   }
+  return state;
 }
 
-function sanitize(s) {
-  const out = blank();
-  if (!s || typeof s !== 'object') return out;
-  if (Array.isArray(s.earned)) {
-    out.earned = [...new Set(s.earned.filter((n) => Number.isInteger(n) && n >= 1 && n <= 55))];
-  }
-  if (s.counters && typeof s.counters === 'object') {
-    for (const [k, v] of Object.entries(s.counters)) {
-      if (Number.isFinite(v) && v >= 0) out.counters[k] = Math.floor(v);
-    }
-  }
-  if (s.notes && typeof s.notes === 'object') {
-    for (const [k, v] of Object.entries(s.notes)) {
-      if (typeof v === 'string') out.notes[k] = v;
-    }
-  }
-  out.hideSpoilers = s.hideSpoilers === true;
-  return out;
-}
-
-export function saveState(state) {
-  localStorage.setItem(KEY, JSON.stringify(state));
-}
-
-export const isEarned = (state, id) => state.earned.includes(id);
-
-export function toggleEarned(state, id) {
-  const at = state.earned.indexOf(id);
-  if (at >= 0) state.earned.splice(at, 1);
+export function toggleEarned(id) {
+  const i = state.earned.indexOf(id);
+  if (i >= 0) state.earned.splice(i, 1);
   else state.earned.push(id);
+  emit();
 }
 
-export const counterOf = (state, id) => state.counters[id] || 0;
-
-export function setCounter(state, id, value, target) {
-  const cap = target ? target.target : Number.MAX_SAFE_INTEGER;
-  const n = Number.isFinite(value) ? Math.floor(value) : 0;
-  state.counters[id] = Math.max(0, Math.min(cap, n));
+export function setCounter(id, value, target) {
+  const clamped = Math.max(0, Math.min(target, Math.floor(value) || 0));
+  state.counters[id] = clamped;
+  emit();
 }
 
-export function setNote(state, id, text) {
+export function setNote(id, text) {
   if (text) state.notes[id] = text;
   else delete state.notes[id];
+  save();
 }
 
-export function exportState(state) {
+export function setHideSpoilers(on) {
+  state.hideSpoilers = Boolean(on);
+  emit();
+}
+
+export function exportState() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'leonida-legend-progress.json';
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(link.href), 600);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'leonida-legend-progress.json';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function importState(file) {
   const parsed = JSON.parse(await file.text());
-  if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.earned)) {
-    throw new Error('That file is not a Leonida Legend progress export.');
+  if (!isValidState(parsed)) throw new Error('That file is not a Leonida Legend progress export.');
+  // Shape is not enough: sanitize the values too, so a hand-edited export
+  // cannot smuggle in negative counters or non-string notes.
+  const counters = {};
+  for (const [k, v] of Object.entries(parsed.counters)) {
+    if (typeof v === 'number' && Number.isFinite(v)) counters[k] = Math.max(0, Math.floor(v));
   }
-  return sanitize(parsed);
+  const notes = {};
+  for (const [k, v] of Object.entries(parsed.notes)) {
+    if (typeof v === 'string' && v) notes[k] = v;
+  }
+  state = {
+    earned: [...new Set(parsed.earned.filter((n) => n > 0))],
+    counters,
+    notes,
+    hideSpoilers: parsed.hideSpoilers,
+  };
+  emit();
 }
